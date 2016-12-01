@@ -1,4 +1,7 @@
 #include <stdbool.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 #include <emacs-module.h>
 
 int plugin_is_GPL_compatible;
@@ -9,10 +12,22 @@ static emacs_value nil;
 static emacs_value t;
 
 static void
-message (emacs_env *env, ptrdiff_t nargs, emacs_value args[nargs])
+message (emacs_env *env, const char *format, ...)
 {
-    emacs_value message = env->intern(env, "message");
-    env->funcall(env, message, nargs, args);
+    va_list ap;
+    va_start(ap, format);
+    size_t length = vsnprintf(NULL, 0, format, ap);
+    va_end(ap);
+    va_start(ap, format);
+    char buffer[length + 1];
+    vsnprintf(buffer, sizeof(buffer), format, ap);
+    va_end(ap);
+
+    emacs_value Qmessage = env->intern(env, "message");
+    emacs_value args[] = {
+        env->make_string(env, buffer, length)
+    };
+    env->funcall(env, Qmessage, sizeof(args)/sizeof(args[0]), args);
 }
 
 static void
@@ -41,14 +56,13 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     if (!elfuse_is_started) {
         elfuse_is_started = true;
 
-        emacs_value path_str = args[0];
-        /* TODO: message should accept c strings for simplicity */
-        const char success_message[] = "Fuse mounted on %s.";
-        emacs_value message_args[] = {
-            env->make_string(env, success_message, sizeof(success_message) - 1),
-            path_str
-        };
-        message (env, sizeof(message_args) / sizeof(*message_args), message_args);
+        emacs_value Qpath = args[0];
+        ptrdiff_t buffer_length = 0;
+        env->copy_string_contents(env, Qpath, NULL, &buffer_length);
+        char buffer[buffer_length];
+        env->copy_string_contents(env, Qpath, buffer, &buffer_length);
+
+        message(env, "Fuse mounted on %s", buffer);
         return t;
     } else {
         return nil;
