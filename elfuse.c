@@ -1,15 +1,43 @@
+#include <stdbool.h>
 #include <emacs-module.h>
 
 int plugin_is_GPL_compatible;
 
+static bool elfuse_is_started = false;
+
+static emacs_value nil;
+static emacs_value t;
+
 static emacs_value
 Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data) {
-  return env->make_integer (env, 1);
+  (void)nargs;
+  (void)args;
+  (void)data;
+  if (!elfuse_is_started)
+    {
+      elfuse_is_started = true;
+      return t;
+    }
+  else
+    {
+      return nil;
+    }
 }
 
 static emacs_value
 Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data) {
-  return env->make_integer (env, -1);
+  (void)nargs;
+  (void)args;
+  (void)data;
+  if (elfuse_is_started)
+    {
+      elfuse_is_started = false;
+      return t;
+    }
+  else
+    {
+      return nil;
+    }
 }
 
 static void
@@ -34,6 +62,9 @@ int
 emacs_module_init (struct emacs_runtime *ert)
 {
   emacs_env *env = ert->get_environment (ert);
+
+  nil = env->intern(env, "nil");
+  t = env->intern(env, "t");
 
   emacs_value fun = env->make_function (
     env, 0, 0,
