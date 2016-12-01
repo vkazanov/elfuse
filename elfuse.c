@@ -8,21 +8,30 @@ static bool elfuse_is_started = false;
 static emacs_value nil;
 static emacs_value t;
 
+static void
+message (emacs_env *env, ptrdiff_t nargs, emacs_value args[nargs])
+{
+  emacs_value message = env->intern(env, "message");
+  env->funcall(env, message, nargs, args);
+}
+
 static emacs_value
 Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
-  (void)nargs; (void)args;
+  (void)nargs;
   if (!elfuse_is_started)
     {
       elfuse_is_started = true;
 
       emacs_value path_str = args[0];
-      /* TODO: extract a message-printing function */
+      /* TODO: message should accept c strings for simplicity */
       const char success_message[] = "Fuse mounted on %s.";
-      emacs_value success_message_str = env->make_string(env, success_message, sizeof(success_message) - 1);
-      emacs_value message_args[] = { success_message_str, path_str };
-      emacs_value message = env->intern(env, "message");
-      env->funcall(env, message, 2, message_args);
+      emacs_value message_args[] =
+        {
+          env->make_string(env, success_message, sizeof(success_message) - 1),
+          path_str
+        };
+      message (env, sizeof(message_args) / sizeof(*message_args), message_args);
       return t;
     }
   else
