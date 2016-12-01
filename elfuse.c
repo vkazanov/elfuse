@@ -9,13 +9,20 @@ static emacs_value nil;
 static emacs_value t;
 
 static emacs_value
-Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data) {
-  (void)nargs;
-  (void)args;
-  (void)data;
+Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
+{
+  (void)nargs; (void)args;
   if (!elfuse_is_started)
     {
       elfuse_is_started = true;
+
+      emacs_value path_str = args[0];
+      /* TODO: extract a message-printing function */
+      const char success_message[] = "Fuse mounted on %s.";
+      emacs_value success_message_str = env->make_string(env, success_message, sizeof(success_message) - 1);
+      emacs_value message_args[] = { success_message_str, path_str };
+      emacs_value message = env->intern(env, "message");
+      env->funcall(env, message, 2, message_args);
       return t;
     }
   else
@@ -25,10 +32,10 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data) 
 }
 
 static emacs_value
-Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data) {
-  (void)nargs;
-  (void)args;
-  (void)data;
+Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
+{
+  (void)env; (void)nargs; (void)args; (void)data;
+
   if (elfuse_is_started)
     {
       elfuse_is_started = false;
@@ -67,7 +74,7 @@ emacs_module_init (struct emacs_runtime *ert)
   t = env->intern(env, "t");
 
   emacs_value fun = env->make_function (
-    env, 0, 0,
+    env, 1, 1,
     Felfuse_start,
     "Start the elfuse thread. ",
     NULL
