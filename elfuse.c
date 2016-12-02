@@ -2,14 +2,28 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+#include <unistd.h>
 #include <emacs-module.h>
 
 int plugin_is_GPL_compatible;
 
 static bool elfuse_is_started = false;
+static pthread_t fuse_thread;
 
 static emacs_value nil;
 static emacs_value t;
+
+static void *
+fuse_thread_function (void *arg)
+{
+    (void)arg;
+    while(true) {
+        fprintf(stderr, "fuse thread still working\n");
+        sleep(1);
+    }
+    return NULL;
+}
 
 static void
 message (emacs_env *env, const char *format, ...)
@@ -54,19 +68,23 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     (void)nargs; (void)data;
 
     if (!elfuse_is_started) {
-        elfuse_is_started = true;
 
         emacs_value Qpath = args[0];
+
         ptrdiff_t buffer_length = 0;
         env->copy_string_contents(env, Qpath, NULL, &buffer_length);
-        char buffer[buffer_length];
-        env->copy_string_contents(env, Qpath, buffer, &buffer_length);
+        char path[buffer_length];
+        env->copy_string_contents(env, Qpath, path, &buffer_length);
 
-        message(env, "Fuse mounted on %s", buffer);
-        return t;
-    } else {
-        return nil;
+        if (pthread_create(&fuse_thread, NULL, fuse_thread_function, NULL) == 0) {
+            elfuse_is_started = true;
+            message(env, "FUSE thread mounted on %s", path);
+            return t;
+        } else {
+            message(env, "Failed to init a FUSE thread");
+        }
     }
+    return nil;
 }
 
 static emacs_value
@@ -74,12 +92,11 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
     (void)env; (void)nargs; (void)args; (void)data;
 
-    if (elfuse_is_started) {
+    if (elfuse_is_started && pthread_cancel(fuse_thread) == 0) {
         elfuse_is_started = false;
         return t;
-    } else {
-        return nil;
     }
+    return nil;
 }
 
 int
