@@ -3,11 +3,13 @@ CC      = gcc
 LD      = gcc
 CFLAGS  = -ggdb3 -Wall
 LDFLAGS =
+DEPS = elfuse_fuse.h
+OBJ = elfuse.o elfuse_fuse.o
 
 all: elfuse.so
 
-%.so: %.o
-	$(LD) -shared $(LDFLAGS) -o $@ $<
+elfuse.so: $(OBJ)
+	$(LD) -shared $(LDFLAGS) -o $@ $^
 
-%.o: %.c
+%.o: %.c $(DEPS)
 	$(CC) $(CFLAGS) -I$(ROOT)/src -fPIC -c $<

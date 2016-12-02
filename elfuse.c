@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <emacs-module.h>
 
+#include "elfuse_fuse.h"
+
 int plugin_is_GPL_compatible;
 
 static bool elfuse_is_started = false;
@@ -18,10 +20,8 @@ static void *
 fuse_thread_function (void *arg)
 {
     (void)arg;
-    while(true) {
-        fprintf(stderr, "fuse thread still working\n");
-        sleep(1);
-    }
+    /* TODO: pass the mount path */
+    elfuse_fuse_loop();
     return NULL;
 }
 
