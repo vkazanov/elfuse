@@ -4,6 +4,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+
 #include <emacs-module.h>
 
 #include "elfuse_fuse.h"
