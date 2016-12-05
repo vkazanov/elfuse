@@ -20,9 +20,8 @@ static emacs_value t;
 static void *
 fuse_thread_function (void *arg)
 {
-    (void)arg;
     /* TODO: pass the mount path */
-    elfuse_fuse_loop();
+    elfuse_fuse_loop(arg);
     return NULL;
 }
 
@@ -72,12 +71,12 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 
         emacs_value Qpath = args[0];
 
-        ptrdiff_t buffer_length = 0;
+        ptrdiff_t buffer_length;
         env->copy_string_contents(env, Qpath, NULL, &buffer_length);
         char path[buffer_length];
         env->copy_string_contents(env, Qpath, path, &buffer_length);
 
-        if (pthread_create(&fuse_thread, NULL, fuse_thread_function, NULL) == 0) {
+        if (pthread_create(&fuse_thread, NULL, fuse_thread_function, path) == 0) {
             elfuse_is_started = true;
             message(env, "FUSE thread mounted on %s", path);
             return t;

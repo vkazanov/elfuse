@@ -152,12 +152,12 @@ static struct fuse_lowlevel_ops hello_ll_oper = {
 };
 
 int
-elfuse_fuse_loop()
+elfuse_fuse_loop(char* mountpath)
 {
     int argc = 2;
     char* argv[] = {
-        "elfuse",
-        "mount/"
+        "",
+        mountpath
     };
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     struct fuse_chan *ch;
