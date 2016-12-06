@@ -20,8 +20,8 @@ static emacs_value t;
 static void *
 fuse_thread_function (void *arg)
 {
-    /* TODO: pass the mount path */
     elfuse_fuse_loop(arg);
+    fprintf(stderr, "thread done");
     return NULL;
 }
 
@@ -92,7 +92,8 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
     (void)env; (void)nargs; (void)args; (void)data;
 
-    if (elfuse_is_started && pthread_cancel(fuse_thread) == 0) {
+    if (elfuse_is_started) {
+        elfuse_stop_loop();
         elfuse_is_started = false;
         return t;
     }

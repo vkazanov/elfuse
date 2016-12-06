@@ -1,4 +1,4 @@
-EMACSSRC    = /home/vkazanov/var/emacs
+EMACSSRC    = /home/vladimirkazanov/var/emacs
 CC      = gcc
 LD      = gcc
 CFLAGS  = -ggdb3 -Wall `pkg-config fuse --cflags`
