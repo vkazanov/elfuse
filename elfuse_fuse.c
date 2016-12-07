@@ -2,11 +2,16 @@
 
 #include <fuse.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <unistd.h>
 
 #include "elfuse_fuse.h"
+
+pthread_mutex_t elfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello";
@@ -102,16 +107,21 @@ elfuse_fuse_loop(char* mountpath)
 
         f = fuse_new(ch, &args, &hello_oper, sizeof(hello_oper), NULL);
         if (f != NULL) {
-            fprintf(stderr, "start loop");
+            fprintf(stderr, "start loop\n");
             err = fuse_loop(f);
-            fprintf(stderr, "stop loop");
+            fprintf(stderr, "stop loop\n");
             fuse_destroy(f);
         }
         fuse_unmount(mountpoint, ch);
     }
     fuse_opt_free_args(&args);
 
-    fprintf(stderr, "done with the loop");
+    /* TODO: use an atomic boolean flag here? */
+    pthread_mutex_lock(&elfuse_mutex);
+    f = NULL;
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    fprintf(stderr, "done with the loop\n");
 
     return err ? 1 : 0;
 }
@@ -119,7 +129,21 @@ elfuse_fuse_loop(char* mountpath)
 void
 elfuse_stop_loop()
 {
-    if (f) {
-        fuse_exit(f);
+    pthread_mutex_lock(&elfuse_mutex);
+    bool is_looping = f != NULL;
+    if (!is_looping) {
+        pthread_mutex_unlock(&elfuse_mutex);
+        return;
     }
+    fuse_exit(f);
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    while (is_looping) {
+        sleep(0.01);
+        fprintf(stderr, "not yet exited\n");
+        pthread_mutex_lock(&elfuse_mutex);
+        is_looping = f != NULL;
+        pthread_mutex_unlock(&elfuse_mutex);
+    }
+    fprintf(stderr, "exited\n");
 }
