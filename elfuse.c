@@ -100,6 +100,30 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     return nil;
 }
 
+static emacs_value
+Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
+{
+    (void)env; (void)nargs; (void)args; (void)data;
+
+    if (!elfuse_is_started) {
+        message(env, "elfuse loop is not running");
+        return nil;
+    }
+
+    if (pthread_mutex_trylock(&elfuse_mutex) == 0) {
+        if (elfuse_function_waiting == READDIR) {
+            /* TODO: call the function required here. */
+            fprintf(stderr, "READDIR waiting on %s, reseting.", path_arg);
+            elfuse_function_waiting = READY;
+        } else {
+            fprintf(stderr, "Nothing is waiting");
+        }
+        pthread_mutex_unlock(&elfuse_mutex);
+    };
+
+    return t;
+}
+
 int
 emacs_module_init (struct emacs_runtime *ert)
 {
@@ -123,6 +147,14 @@ emacs_module_init (struct emacs_runtime *ert)
         NULL
     );
     bind_function (env, "elfuse--stop", fun);
+
+    fun = env->make_function (
+        env, 0, 0,
+        Felfuse_check_callbacks,
+        "Check if Fuse callbacks are waiting for reply and reply. ",
+        NULL
+    );
+    bind_function (env, "elfuse--check-callbacks", fun);
 
     provide (env, "elfuse");
 

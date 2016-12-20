@@ -13,6 +13,8 @@
 
 pthread_mutex_t elfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+enum elfuse_function_waiting_enum elfuse_function_waiting = NONE;
+
 static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello";
 
@@ -39,6 +41,29 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 {
 	(void) offset;
 	(void) fi;
+
+        /* TODO: Wait if busy */
+        pthread_mutex_lock(&elfuse_mutex);
+        elfuse_function_waiting = READDIR;
+        path_arg = path;
+        pthread_mutex_unlock(&elfuse_mutex);
+
+        fprintf(stderr, "Checked - starting the loop\n");
+        bool waiting = true;
+        while (waiting) {
+            pthread_mutex_lock(&elfuse_mutex);
+            if (elfuse_function_waiting == READY) {
+                fprintf(stderr, "Checked - ready\n");
+                elfuse_function_waiting = NONE;
+                pthread_mutex_unlock(&elfuse_mutex);
+                waiting = false;
+            } else if (elfuse_function_waiting == READDIR){
+                pthread_mutex_unlock(&elfuse_mutex);
+                fprintf(stderr, "Checked - not ready\n");
+                sleep(1);
+            }
+        }
+        fprintf(stderr, "Checked - done with the loop\n");
 
 	if (strcmp(path, "/") != 0)
 		return -ENOENT;
