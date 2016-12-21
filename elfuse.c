@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -114,6 +115,23 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         if (elfuse_function_waiting == READDIR) {
             /* TODO: call the function required here. */
             fprintf(stderr, "READDIR waiting on %s, reseting.", path_arg);
+
+            emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
+            emacs_value args[] = {
+                env->make_string(env, path_arg, strlen(path_arg))
+            };
+            emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
+            path_results_size = env->vec_size(env, file_vector);
+            path_results = malloc(path_results_size*sizeof(path_results[0]));
+            for (size_t i = 0; i < path_results_size; i++) {
+                emacs_value Spath = env->vec_get(env, file_vector, i);
+                ptrdiff_t buffer_length;
+                env->copy_string_contents(env, Spath, NULL, &buffer_length);
+                char *path = malloc(buffer_length);
+                env->copy_string_contents(env, Spath, path, &buffer_length);
+                path_results[i] = path;
+            }
+
             elfuse_function_waiting = READY;
         } else {
             fprintf(stderr, "Nothing is waiting");

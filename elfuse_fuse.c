@@ -18,6 +18,10 @@ enum elfuse_function_waiting_enum elfuse_function_waiting = NONE;
 static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello";
 
+const char *path_arg;
+char **path_results;
+size_t path_results_size;
+
 static int hello_getattr(const char *path, struct stat *stbuf)
 {
 	int res = 0;
@@ -48,12 +52,18 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         path_arg = path;
         pthread_mutex_unlock(&elfuse_mutex);
 
+	if (strcmp(path, "/") != 0)
+		return -ENOENT;
+
         fprintf(stderr, "Checked - starting the loop\n");
         bool waiting = true;
         while (waiting) {
             pthread_mutex_lock(&elfuse_mutex);
             if (elfuse_function_waiting == READY) {
                 fprintf(stderr, "Checked - ready\n");
+                for (size_t i = 0; i < path_results_size; i++) {
+                    filler(buf, path_results[i], NULL, 0);
+                }
                 elfuse_function_waiting = NONE;
                 pthread_mutex_unlock(&elfuse_mutex);
                 waiting = false;
@@ -64,13 +74,6 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
             }
         }
         fprintf(stderr, "Checked - done with the loop\n");
-
-	if (strcmp(path, "/") != 0)
-		return -ENOENT;
-
-	filler(buf, ".", NULL, 0);
-	filler(buf, "..", NULL, 0);
-	filler(buf, hello_path + 1, NULL, 0);
 
 	return 0;
 }

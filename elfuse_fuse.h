@@ -13,7 +13,9 @@ enum elfuse_function_waiting_enum {
 
 extern enum elfuse_function_waiting_enum elfuse_function_waiting;
 
-const char *path_arg;
+extern const char *path_arg;
+extern char **path_results;
+extern size_t path_results_size;
 
 int
 elfuse_fuse_loop(char* mountpath);
