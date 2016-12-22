@@ -107,20 +107,20 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
     (void)env; (void)nargs; (void)args; (void)data;
 
     if (!elfuse_is_started) {
-        message(env, "elfuse loop is not running");
+        message(env, "Elfuse loop is not running, abort.");
         return nil;
     }
 
     if (pthread_mutex_trylock(&elfuse_mutex) == 0) {
+
         if (elfuse_function_waiting == READDIR) {
             /* TODO: call the function required here. */
-            fprintf(stderr, "READDIR waiting on %s, reseting.", path_arg);
+            fprintf(stderr, "Handling READDIR (path=%s).\n", path_arg);
 
-            emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
             emacs_value args[] = {
                 env->make_string(env, path_arg, strlen(path_arg))
             };
-
+            emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
             emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
 
             /* TODO: don't forget to free this later */
@@ -138,14 +138,14 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
 
             elfuse_function_waiting = READY;
         } else if (elfuse_function_waiting == GETATTR) {
-            fprintf(stderr, "GETATTR waiting on %s, reseting.", path_arg);
+            fprintf(stderr, "Handling GETATTR (path=%s).\n", path_arg);
 
-            emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
             emacs_value args[] = {
                 env->make_string(env, path_arg, strlen(path_arg))
             };
-
+            emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
             emacs_value Qfiletype = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
+
             if (env->eq(env, Qfiletype, env->intern(env, "file"))) {
                 getattr_results = GETATTR_FILE;
             } else if (env->eq(env, Qfiletype, env->intern(env, "dir"))) {
@@ -155,9 +155,8 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
             }
 
             elfuse_function_waiting = READY;
-        } else {
-            fprintf(stderr, "Nothing is waiting\n");
         }
+
         pthread_mutex_unlock(&elfuse_mutex);
     };
 
