@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "elfuse_fuse.h"
 
@@ -35,33 +36,39 @@ static int hello_getattr(const char *path, struct stat *stbuf)
     pthread_mutex_unlock(&elfuse_mutex);
 
     memset(stbuf, 0, sizeof(struct stat));
-    bool waiting = true;
-    while (waiting) {
+
+    while (true) {
         pthread_mutex_lock(&elfuse_mutex);
+
+        if (elfuse_function_waiting == GETATTR) {
+            pthread_mutex_unlock(&elfuse_mutex);
+            fprintf(stderr, "GETATTR still waiting\n");
+            sleep(1);
+            continue;
+        }
+
         if (elfuse_function_waiting == READY) {
-            fprintf(stderr, "Checked - ready\n");
 
             if (getattr_results == GETATTR_FILE) {
-                fprintf(stderr, "Checked - file %s\n", path);
+                fprintf(stderr, "GETATTR received results (file %s)\n", path);
                 stbuf->st_mode = S_IFREG | 0444;
                 stbuf->st_nlink = 1;
                 stbuf->st_size = strlen(hello_str);
             } else if (getattr_results == GETATTR_DIR) {
-                fprintf(stderr, "Checked - dir %s\n", path);
+                fprintf(stderr, "GETATTR received results (dir %s)\n", path);
                 stbuf->st_mode = S_IFDIR | 0755;
                 stbuf->st_nlink = 2;
             } else {
+                fprintf(stderr, "GETATTR received results (unknown %s)\n", path);
                 res = -ENOENT;
             }
 
             elfuse_function_waiting = NONE;
             pthread_mutex_unlock(&elfuse_mutex);
-            waiting = false;
-        } else if (elfuse_function_waiting == GETATTR){
-            pthread_mutex_unlock(&elfuse_mutex);
-            fprintf(stderr, "Checked - not ready\n");
-            sleep(1);
+            break;
         }
+
+        assert(false);
     }
 
     return res;
@@ -82,25 +89,28 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     if (strcmp(path, "/") != 0)
         return -ENOENT;
 
-    fprintf(stderr, "Checked - starting the loop\n");
-    bool waiting = true;
-    while (waiting) {
+    while (true) {
         pthread_mutex_lock(&elfuse_mutex);
+
+        if (elfuse_function_waiting == READDIR){
+            pthread_mutex_unlock(&elfuse_mutex);
+            fprintf(stderr, "READDIR still waiting\n");
+            sleep(1);
+            continue;
+        }
+
         if (elfuse_function_waiting == READY) {
-            fprintf(stderr, "Checked - ready\n");
+            fprintf(stderr, "READDIR received results\n");
             for (size_t i = 0; i < readdir_results_size; i++) {
                 filler(buf, readdir_results[i], NULL, 0);
             }
             elfuse_function_waiting = NONE;
             pthread_mutex_unlock(&elfuse_mutex);
-            waiting = false;
-        } else if (elfuse_function_waiting == READDIR){
-            pthread_mutex_unlock(&elfuse_mutex);
-            fprintf(stderr, "Checked - not ready\n");
-            sleep(1);
+            break;
         }
+
+        assert(false);
     }
-    fprintf(stderr, "Checked - done with the loop\n");
 
     return 0;
 }
@@ -194,7 +204,7 @@ elfuse_stop_loop()
     pthread_mutex_unlock(&elfuse_mutex);
 
     while (is_looping) {
-        sleep(0.01);
+        sleep(0.1);
         fprintf(stderr, "not yet exited\n");
         pthread_mutex_lock(&elfuse_mutex);
         is_looping = f != NULL;
