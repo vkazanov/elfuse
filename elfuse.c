@@ -120,21 +120,43 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
             emacs_value args[] = {
                 env->make_string(env, path_arg, strlen(path_arg))
             };
+
             emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
-            path_results_size = env->vec_size(env, file_vector);
-            path_results = malloc(path_results_size*sizeof(path_results[0]));
-            for (size_t i = 0; i < path_results_size; i++) {
+
+            /* TODO: don't forget to free this later */
+            readdir_results_size = env->vec_size(env, file_vector);
+            readdir_results = malloc(readdir_results_size*sizeof(readdir_results[0]));
+
+            for (size_t i = 0; i < readdir_results_size; i++) {
                 emacs_value Spath = env->vec_get(env, file_vector, i);
                 ptrdiff_t buffer_length;
                 env->copy_string_contents(env, Spath, NULL, &buffer_length);
                 char *path = malloc(buffer_length);
                 env->copy_string_contents(env, Spath, path, &buffer_length);
-                path_results[i] = path;
+                readdir_results[i] = path;
+            }
+
+            elfuse_function_waiting = READY;
+        } else if (elfuse_function_waiting == GETATTR) {
+            fprintf(stderr, "GETATTR waiting on %s, reseting.", path_arg);
+
+            emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
+            emacs_value args[] = {
+                env->make_string(env, path_arg, strlen(path_arg))
+            };
+
+            emacs_value Qfiletype = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
+            if (env->eq(env, Qfiletype, env->intern(env, "file"))) {
+                getattr_results = GETATTR_FILE;
+            } else if (env->eq(env, Qfiletype, env->intern(env, "dir"))) {
+                getattr_results = GETATTR_DIR;
+            } else {
+                getattr_results = GETATTR_UNKNOWN;
             }
 
             elfuse_function_waiting = READY;
         } else {
-            fprintf(stderr, "Nothing is waiting");
+            fprintf(stderr, "Nothing is waiting\n");
         }
         pthread_mutex_unlock(&elfuse_mutex);
     };

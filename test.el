@@ -1,8 +1,17 @@
 (require 'elfuse)
-(elfuse--start "mount/")
 
 (defun elfuse--readdir-callback (path)
   ["." ".." "hello" "other" "etc"])
+
+(defun elfuse--getattr-callback (path)
+  (cond
+   ((equal path "/hello") 'file)
+   ((equal path "/other") 'file)
+   ((equal path "/etc") 'file)
+   ((equal path "/") 'dir)
+   (t nil)))
+
+(elfuse--start "mount/")
 
 (let ((timer (run-at-time
               nil

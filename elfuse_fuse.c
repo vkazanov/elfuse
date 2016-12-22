@@ -19,63 +19,90 @@ static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello";
 
 const char *path_arg;
-char **path_results;
-size_t path_results_size;
+
+char **readdir_results;
+size_t readdir_results_size;
+
+enum elfuse_getattr_result_enum getattr_results;
 
 static int hello_getattr(const char *path, struct stat *stbuf)
 {
-	int res = 0;
+    int res = 0;
 
-	memset(stbuf, 0, sizeof(struct stat));
-	if (strcmp(path, "/") == 0) {
-		stbuf->st_mode = S_IFDIR | 0755;
-		stbuf->st_nlink = 2;
-	} else if (strcmp(path, hello_path) == 0) {
-		stbuf->st_mode = S_IFREG | 0444;
-		stbuf->st_nlink = 1;
-		stbuf->st_size = strlen(hello_str);
-	} else
-		res = -ENOENT;
+    pthread_mutex_lock(&elfuse_mutex);
+    elfuse_function_waiting = GETATTR;
+    path_arg = path;
+    pthread_mutex_unlock(&elfuse_mutex);
 
-	return res;
+    memset(stbuf, 0, sizeof(struct stat));
+    bool waiting = true;
+    while (waiting) {
+        pthread_mutex_lock(&elfuse_mutex);
+        if (elfuse_function_waiting == READY) {
+            fprintf(stderr, "Checked - ready\n");
+
+            if (getattr_results == GETATTR_FILE) {
+                fprintf(stderr, "Checked - file %s\n", path);
+                stbuf->st_mode = S_IFREG | 0444;
+                stbuf->st_nlink = 1;
+                stbuf->st_size = strlen(hello_str);
+            } else if (getattr_results == GETATTR_DIR) {
+                fprintf(stderr, "Checked - dir %s\n", path);
+                stbuf->st_mode = S_IFDIR | 0755;
+                stbuf->st_nlink = 2;
+            } else {
+                res = -ENOENT;
+            }
+
+            elfuse_function_waiting = NONE;
+            pthread_mutex_unlock(&elfuse_mutex);
+            waiting = false;
+        } else if (elfuse_function_waiting == GETATTR){
+            pthread_mutex_unlock(&elfuse_mutex);
+            fprintf(stderr, "Checked - not ready\n");
+            sleep(1);
+        }
+    }
+
+    return res;
 }
 
 static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			 off_t offset, struct fuse_file_info *fi)
 {
-	(void) offset;
-	(void) fi;
+    (void) offset;
+    (void) fi;
 
-        /* TODO: Wait if busy */
+    /* TODO: Wait if busy */
+    pthread_mutex_lock(&elfuse_mutex);
+    elfuse_function_waiting = READDIR;
+    path_arg = path;
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    if (strcmp(path, "/") != 0)
+        return -ENOENT;
+
+    fprintf(stderr, "Checked - starting the loop\n");
+    bool waiting = true;
+    while (waiting) {
         pthread_mutex_lock(&elfuse_mutex);
-        elfuse_function_waiting = READDIR;
-        path_arg = path;
-        pthread_mutex_unlock(&elfuse_mutex);
-
-	if (strcmp(path, "/") != 0)
-		return -ENOENT;
-
-        fprintf(stderr, "Checked - starting the loop\n");
-        bool waiting = true;
-        while (waiting) {
-            pthread_mutex_lock(&elfuse_mutex);
-            if (elfuse_function_waiting == READY) {
-                fprintf(stderr, "Checked - ready\n");
-                for (size_t i = 0; i < path_results_size; i++) {
-                    filler(buf, path_results[i], NULL, 0);
-                }
-                elfuse_function_waiting = NONE;
-                pthread_mutex_unlock(&elfuse_mutex);
-                waiting = false;
-            } else if (elfuse_function_waiting == READDIR){
-                pthread_mutex_unlock(&elfuse_mutex);
-                fprintf(stderr, "Checked - not ready\n");
-                sleep(1);
+        if (elfuse_function_waiting == READY) {
+            fprintf(stderr, "Checked - ready\n");
+            for (size_t i = 0; i < readdir_results_size; i++) {
+                filler(buf, readdir_results[i], NULL, 0);
             }
+            elfuse_function_waiting = NONE;
+            pthread_mutex_unlock(&elfuse_mutex);
+            waiting = false;
+        } else if (elfuse_function_waiting == READDIR){
+            pthread_mutex_unlock(&elfuse_mutex);
+            fprintf(stderr, "Checked - not ready\n");
+            sleep(1);
         }
-        fprintf(stderr, "Checked - done with the loop\n");
+    }
+    fprintf(stderr, "Checked - done with the loop\n");
 
-	return 0;
+    return 0;
 }
 
 static int hello_open(const char *path, struct fuse_file_info *fi)
