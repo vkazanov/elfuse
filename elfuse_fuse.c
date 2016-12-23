@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -15,9 +16,6 @@
 pthread_mutex_t elfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 enum elfuse_function_waiting_enum elfuse_function_waiting = NONE;
-
-static const char *hello_str = "Hello World!\n";
-static const char *hello_path = "/hello";
 
 const char *path_arg;
 
@@ -31,6 +29,12 @@ size_t getattr_results_file_size;
 
 /* OPEN args and results */
 enum elfuse_open_result_enum open_results;
+
+/* READ args and results */
+size_t read_args_size;
+size_t read_args_offset;
+int read_results;
+char *read_results_data;
 
 
 static int hello_getattr(const char *path, struct stat *stbuf)
@@ -167,20 +171,58 @@ static int hello_open(const char *path, struct fuse_file_info *fi)
 static int hello_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
-    size_t len;
+    size_t res;
     (void) fi;
-    if(strcmp(path, hello_path) != 0)
-        return -ENOENT;
 
-    len = strlen(hello_str);
-    if (offset < len) {
-        if (offset + size > len)
-            size = len - offset;
-        memcpy(buf, hello_str + offset, size);
-    } else
-        size = 0;
+    /* if(strcmp(path, hello_path) != 0) */
+    /*     return -ENOENT; */
 
-    return size;
+    pthread_mutex_lock(&elfuse_mutex);
+    elfuse_function_waiting = READ;
+    path_arg = path;
+    read_args_offset = offset;
+    read_args_size = size;
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    while(true) {
+        pthread_mutex_lock(&elfuse_mutex);
+
+        if (elfuse_function_waiting == READ) {
+            pthread_mutex_unlock(&elfuse_mutex);
+            fprintf(stderr, "READ still waiting\n");
+            sleep(1);
+            continue;
+        }
+
+        if (elfuse_function_waiting == READY) {
+
+            if (read_results >= 0) {
+                fprintf(stderr, "READ received results %s(%d)\n", read_results_data, read_results);
+                memcpy(buf, read_results_data, read_results);
+                free(read_results_data);
+                res = read_results;
+            } else {
+                fprintf(stderr, "READ did not receive results (%d)\n", read_results);
+                res = -ENOENT;
+            }
+
+            elfuse_function_waiting = NONE;
+            pthread_mutex_unlock(&elfuse_mutex);
+            break;
+        }
+
+        assert(false);
+    }
+
+    /* len = strlen(hello_str); */
+    /* if (offset < len) { */
+    /*     if (offset + size > len) */
+    /*         size = len - offset; */
+    /*     memcpy(buf, hello_str + offset, size); */
+    /* } else */
+    /*     size = 0; */
+
+    return res;
 }
 
 static struct fuse_operations hello_oper = {

@@ -1,4 +1,5 @@
 (require 'elfuse)
+(require 'seq)
 
 (defun elfuse--readdir-callback (path)
   ["." ".." "hello" "other" "etc"])
@@ -17,6 +18,21 @@
    ((equal path "/other") t)
    ((equal path "/etc") t)
    (t nil)))
+
+(defun elfuse--read-callback (path offset size)
+  (let ((res (cond
+              ((equal path "/hello") (elfuse--read-substring "hellodata" offset size))
+              ((equal path "/other") (elfuse--read-substring "otherdata" offset size))
+              ((equal path "/etc") (elfuse--read-substring "etcdata" offset size))
+              (t nil))))
+    (message "READ RESULT %s" res)
+    res))
+
+(defun elfuse--read-substring (str offset size)
+  (cond
+   ((> offset (seq-length str)) "")
+   ((> (+ offset size) (seq-length str)) (seq-subseq str offset))
+   (t (seq-subseq str offset (+ offset size)))))
 
 (elfuse--start "mount/")
 

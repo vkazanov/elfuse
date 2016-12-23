@@ -111,75 +111,105 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         return nil;
     }
 
-    if (pthread_mutex_trylock(&elfuse_mutex) == 0) {
+    if (pthread_mutex_trylock(&elfuse_mutex) != 0)
+        return t;
 
-        if (elfuse_function_waiting == READDIR) {
-            /* TODO: call the function required here. */
-            fprintf(stderr, "Handling READDIR (path=%s).\n", path_arg);
+    if (elfuse_function_waiting == READDIR) {
+        /* TODO: call the function required here. */
+        fprintf(stderr, "Handling READDIR (path=%s).\n", path_arg);
 
-            emacs_value args[] = {
-                env->make_string(env, path_arg, strlen(path_arg))
-            };
-            emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
-            emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
+        emacs_value args[] = {
+            env->make_string(env, path_arg, strlen(path_arg))
+        };
+        emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
+        emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
 
-            /* TODO: don't forget to free this later */
-            readdir_results_size = env->vec_size(env, file_vector);
-            readdir_results = malloc(readdir_results_size*sizeof(readdir_results[0]));
+        /* TODO: don't forget to free this later */
+        readdir_results_size = env->vec_size(env, file_vector);
+        readdir_results = malloc(readdir_results_size*sizeof(readdir_results[0]));
 
-            for (size_t i = 0; i < readdir_results_size; i++) {
-                emacs_value Spath = env->vec_get(env, file_vector, i);
-                ptrdiff_t buffer_length;
-                env->copy_string_contents(env, Spath, NULL, &buffer_length);
-                char *path = malloc(buffer_length);
-                env->copy_string_contents(env, Spath, path, &buffer_length);
-                readdir_results[i] = path;
-            }
-
-            elfuse_function_waiting = READY;
-
-        } else if (elfuse_function_waiting == GETATTR) {
-            fprintf(stderr, "Handling GETATTR (path=%s).\n", path_arg);
-
-            emacs_value args[] = {
-                env->make_string(env, path_arg, strlen(path_arg))
-            };
-            emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
-
-            emacs_value getattr_result_vector = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
-            emacs_value Qfiletype = env->vec_get(env, getattr_result_vector, 0);
-            emacs_value file_size = env->vec_get(env, getattr_result_vector, 1);
-
-            if (env->eq(env, Qfiletype, env->intern(env, "file"))) {
-                getattr_results = GETATTR_FILE;
-                getattr_results_file_size = env->extract_integer(env, file_size);
-            } else if (env->eq(env, Qfiletype, env->intern(env, "dir"))) {
-                getattr_results = GETATTR_DIR;
-            } else {
-                getattr_results = GETATTR_UNKNOWN;
-            }
-
-            elfuse_function_waiting = READY;
-        } else if (elfuse_function_waiting == OPEN) {
-            fprintf(stderr, "Handling OPEN (path=%s).\n", path_arg);
-
-            emacs_value args[] = {
-                env->make_string(env, path_arg, strlen(path_arg))
-            };
-            emacs_value Qgetattr = env->intern(env, "elfuse--open-callback");
-            emacs_value Qfound = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
-
-            if (env->eq(env, Qfound, t)) {
-                open_results = OPEN_FOUND;
-            } else {
-                open_results = OPEN_UNKNOWN;
-            }
-
-            elfuse_function_waiting = READY;
+        for (size_t i = 0; i < readdir_results_size; i++) {
+            emacs_value Spath = env->vec_get(env, file_vector, i);
+            ptrdiff_t buffer_length;
+            env->copy_string_contents(env, Spath, NULL, &buffer_length);
+            char *path = malloc(buffer_length);
+            env->copy_string_contents(env, Spath, path, &buffer_length);
+            readdir_results[i] = path;
         }
 
-        pthread_mutex_unlock(&elfuse_mutex);
-    };
+        elfuse_function_waiting = READY;
+
+    } else if (elfuse_function_waiting == GETATTR) {
+        fprintf(stderr, "Handling GETATTR (path=%s).\n", path_arg);
+
+        emacs_value args[] = {
+            env->make_string(env, path_arg, strlen(path_arg))
+        };
+        emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
+
+        emacs_value getattr_result_vector = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
+        emacs_value Qfiletype = env->vec_get(env, getattr_result_vector, 0);
+        emacs_value file_size = env->vec_get(env, getattr_result_vector, 1);
+
+        if (env->eq(env, Qfiletype, env->intern(env, "file"))) {
+            getattr_results = GETATTR_FILE;
+            getattr_results_file_size = env->extract_integer(env, file_size);
+        } else if (env->eq(env, Qfiletype, env->intern(env, "dir"))) {
+            getattr_results = GETATTR_DIR;
+        } else {
+            getattr_results = GETATTR_UNKNOWN;
+        }
+
+        elfuse_function_waiting = READY;
+
+    } else if (elfuse_function_waiting == OPEN) {
+        fprintf(stderr, "Handling OPEN (path=%s).\n", path_arg);
+
+        emacs_value args[] = {
+            env->make_string(env, path_arg, strlen(path_arg))
+        };
+        emacs_value Qopen = env->intern(env, "elfuse--open-callback");
+        emacs_value Qfound = env->funcall(env, Qopen, sizeof(args)/sizeof(args[0]), args);
+
+        if (env->eq(env, Qfound, t)) {
+            open_results = OPEN_FOUND;
+        } else {
+            open_results = OPEN_UNKNOWN;
+        }
+
+        elfuse_function_waiting = READY;
+
+    } else if (elfuse_function_waiting == READ) {
+        fprintf(stderr, "Handling READ (path=%s).\n", path_arg);
+
+        emacs_value args[] = {
+            env->make_string(env, path_arg, strlen(path_arg)),
+            env->make_integer(env, read_args_offset),
+            env->make_integer(env, read_args_size),
+        };
+        emacs_value Qread = env->intern(env, "elfuse--read-callback");
+        emacs_value Sdata = env->funcall(env, Qread, sizeof(args)/sizeof(args[0]), args);
+
+        if (env->eq(env, Sdata, nil)) {
+            fprintf(stderr, "Handling READ: nil\n");
+            read_results = -1;
+        } else {
+            ptrdiff_t buffer_length;
+            env->copy_string_contents(env, Sdata, NULL, &buffer_length);
+            read_results_data = malloc(buffer_length);
+            if (!env->copy_string_contents(env, Sdata, read_results_data, &buffer_length)) {
+                fprintf(stderr, "Failed READ: %s\n", path_arg);
+                read_results = -1;
+            } else {
+                read_results = buffer_length;
+                fprintf(stderr, "Handling READ: %s(len=%ld)\n", read_results_data, buffer_length);
+            }
+        }
+
+        elfuse_function_waiting = READY;
+    }
+
+    pthread_mutex_unlock(&elfuse_mutex);
 
     return t;
 }
