@@ -174,9 +174,6 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
     size_t res;
     (void) fi;
 
-    /* if(strcmp(path, hello_path) != 0) */
-    /*     return -ENOENT; */
-
     pthread_mutex_lock(&elfuse_mutex);
     elfuse_function_waiting = READ;
     path_arg = path;
@@ -213,14 +210,6 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
 
         assert(false);
     }
-
-    /* len = strlen(hello_str); */
-    /* if (offset < len) { */
-    /*     if (offset + size > len) */
-    /*         size = len - offset; */
-    /*     memcpy(buf, hello_str + offset, size); */
-    /* } else */
-    /*     size = 0; */
 
     return res;
 }
