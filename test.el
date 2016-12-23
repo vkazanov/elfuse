@@ -11,6 +11,13 @@
    ((equal path "/") [dir 0])
    (t [nil, 0])))
 
+(defun elfuse--open-callback (path)
+  (cond
+   ((equal path "/hello") t)
+   ((equal path "/other") t)
+   ((equal path "/etc") t)
+   (t nil)))
+
 (elfuse--start "mount/")
 
 (let ((timer (run-at-time
@@ -20,4 +27,4 @@
                       (unless check-p
                         (cancel-timer timer))))))) )
 
-(elfuse--stop)
+;; (elfuse--stop)

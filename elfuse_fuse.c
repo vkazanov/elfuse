@@ -21,11 +21,17 @@ static const char *hello_path = "/hello";
 
 const char *path_arg;
 
+/* READIR args and results */
 char **readdir_results;
 size_t readdir_results_size;
 
+/* GETATTR args and results */
 enum elfuse_getattr_result_enum getattr_results;
 size_t getattr_results_file_size;
+
+/* OPEN args and results */
+enum elfuse_open_result_enum open_results;
+
 
 static int hello_getattr(const char *path, struct stat *stbuf)
 {
@@ -118,13 +124,45 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int hello_open(const char *path, struct fuse_file_info *fi)
 {
-	if (strcmp(path, hello_path) != 0)
-		return -ENOENT;
+    if ((fi->flags & 3) != O_RDONLY)
+        return -EACCES;
 
-	if ((fi->flags & 3) != O_RDONLY)
-		return -EACCES;
+    pthread_mutex_lock(&elfuse_mutex);
+    elfuse_function_waiting = OPEN;
+    path_arg = path;
+    pthread_mutex_unlock(&elfuse_mutex);
 
-	return 0;
+    int res = 0;
+    while (true) {
+        pthread_mutex_lock(&elfuse_mutex);
+
+        if (elfuse_function_waiting == OPEN) {
+            pthread_mutex_unlock(&elfuse_mutex);
+            fprintf(stderr, "OPEN still waiting\n");
+            sleep(1);
+            continue;
+        }
+
+        if (elfuse_function_waiting == READY) {
+            fprintf(stderr, "OPEN received results (%d)\n", open_results == OPEN_FOUND);
+
+            if (open_results == OPEN_FOUND) {
+                elfuse_function_waiting = NONE;
+                pthread_mutex_unlock(&elfuse_mutex);
+                res = 0;
+            } else {
+                elfuse_function_waiting = NONE;
+                pthread_mutex_unlock(&elfuse_mutex);
+                res = -ENOENT;
+            }
+
+            break;
+        }
+
+        assert(false);
+    }
+
+    return res;
 }
 
 static int hello_read(const char *path, char *buf, size_t size, off_t offset,

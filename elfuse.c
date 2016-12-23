@@ -160,6 +160,22 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
             }
 
             elfuse_function_waiting = READY;
+        } else if (elfuse_function_waiting == OPEN) {
+            fprintf(stderr, "Handling OPEN (path=%s).\n", path_arg);
+
+            emacs_value args[] = {
+                env->make_string(env, path_arg, strlen(path_arg))
+            };
+            emacs_value Qgetattr = env->intern(env, "elfuse--open-callback");
+            emacs_value Qfound = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
+
+            if (env->eq(env, Qfound, t)) {
+                open_results = OPEN_FOUND;
+            } else {
+                open_results = OPEN_UNKNOWN;
+            }
+
+            elfuse_function_waiting = READY;
         }
 
         pthread_mutex_unlock(&elfuse_mutex);
