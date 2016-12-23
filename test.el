@@ -6,10 +6,10 @@
 
 (defun elfuse--getattr-callback (path)
   (cond
-   ((equal path "/hello") [file 5])
-   ((equal path "/other") [file 3])
-   ((equal path "/etc") [file 2])
-   ((equal path "/") [dir 0])
+   ((equal path "/hello") (vector 'file (seq-length "hellodata")))
+   ((equal path "/other") (vector 'file (seq-length "otherdata")))
+   ((equal path "/etc") (vector 'file (seq-length "etcdata")))
+   ((equal path "/") (vector 'dir 0))
    (t [nil, 0])))
 
 (defun elfuse--open-callback (path)
@@ -20,13 +20,11 @@
    (t nil)))
 
 (defun elfuse--read-callback (path offset size)
-  (let ((res (cond
-              ((equal path "/hello") (elfuse--read-substring "hellodata" offset size))
-              ((equal path "/other") (elfuse--read-substring "otherdata" offset size))
-              ((equal path "/etc") (elfuse--read-substring "etcdata" offset size))
-              (t nil))))
-    (message "READ RESULT %s" res)
-    res))
+  (cond
+   ((equal path "/hello") (elfuse--read-substring "hellodata" offset size))
+   ((equal path "/other") (elfuse--read-substring "otherdata" offset size))
+   ((equal path "/etc") (elfuse--read-substring "etcdata" offset size))
+   (t nil)))
 
 (defun elfuse--read-substring (str offset size)
   (cond
