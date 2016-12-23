@@ -137,6 +137,7 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
             }
 
             elfuse_function_waiting = READY;
+
         } else if (elfuse_function_waiting == GETATTR) {
             fprintf(stderr, "Handling GETATTR (path=%s).\n", path_arg);
 
@@ -144,10 +145,14 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
                 env->make_string(env, path_arg, strlen(path_arg))
             };
             emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
-            emacs_value Qfiletype = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
+
+            emacs_value getattr_result_vector = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
+            emacs_value Qfiletype = env->vec_get(env, getattr_result_vector, 0);
+            emacs_value file_size = env->vec_get(env, getattr_result_vector, 1);
 
             if (env->eq(env, Qfiletype, env->intern(env, "file"))) {
                 getattr_results = GETATTR_FILE;
+                getattr_results_file_size = env->extract_integer(env, file_size);
             } else if (env->eq(env, Qfiletype, env->intern(env, "dir"))) {
                 getattr_results = GETATTR_DIR;
             } else {

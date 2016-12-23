@@ -26,6 +26,7 @@ extern enum elfuse_getattr_result_enum {
     GETATTR_DIR,
     GETATTR_UNKNOWN,
 } getattr_results;
+extern size_t getattr_results_file_size;
 
 int
 elfuse_fuse_loop(char* mountpath);

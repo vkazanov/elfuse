@@ -5,11 +5,11 @@
 
 (defun elfuse--getattr-callback (path)
   (cond
-   ((equal path "/hello") 'file)
-   ((equal path "/other") 'file)
-   ((equal path "/etc") 'file)
-   ((equal path "/") 'dir)
-   (t nil)))
+   ((equal path "/hello") [file 5])
+   ((equal path "/other") [file 3])
+   ((equal path "/etc") [file 2])
+   ((equal path "/") [dir 0])
+   (t [nil, 0])))
 
 (elfuse--start "mount/")
 

@@ -25,6 +25,7 @@ char **readdir_results;
 size_t readdir_results_size;
 
 enum elfuse_getattr_result_enum getattr_results;
+size_t getattr_results_file_size;
 
 static int hello_getattr(const char *path, struct stat *stbuf)
 {
@@ -53,7 +54,7 @@ static int hello_getattr(const char *path, struct stat *stbuf)
                 fprintf(stderr, "GETATTR received results (file %s)\n", path);
                 stbuf->st_mode = S_IFREG | 0444;
                 stbuf->st_nlink = 1;
-                stbuf->st_size = strlen(hello_str);
+                stbuf->st_size = getattr_results_file_size;
             } else if (getattr_results == GETATTR_DIR) {
                 fprintf(stderr, "GETATTR received results (dir %s)\n", path);
                 stbuf->st_mode = S_IFDIR | 0755;
