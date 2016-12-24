@@ -137,8 +137,6 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
             readdir_results[i] = path;
         }
 
-        elfuse_function_waiting = READY;
-
     } else if (elfuse_function_waiting == GETATTR) {
         fprintf(stderr, "Handling GETATTR (path=%s).\n", path_arg);
 
@@ -160,8 +158,6 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
             getattr_results = GETATTR_UNKNOWN;
         }
 
-        elfuse_function_waiting = READY;
-
     } else if (elfuse_function_waiting == OPEN) {
         fprintf(stderr, "Handling OPEN (path=%s).\n", path_arg);
 
@@ -176,8 +172,6 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         } else {
             open_results = OPEN_UNKNOWN;
         }
-
-        elfuse_function_waiting = READY;
 
     } else if (elfuse_function_waiting == READ) {
         fprintf(stderr, "Handling READ (path=%s).\n", path_arg);
@@ -205,10 +199,9 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
                 fprintf(stderr, "Handling READ: %s(len=%ld)\n", read_results_data, buffer_length);
             }
         }
-
-        elfuse_function_waiting = READY;
     }
 
+    pthread_cond_signal(&elfuse_cond_var);
     pthread_mutex_unlock(&elfuse_mutex);
 
     return t;

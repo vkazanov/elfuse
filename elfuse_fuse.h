@@ -4,11 +4,11 @@
 #include <pthread.h>
 
 extern pthread_mutex_t elfuse_mutex;
+extern pthread_cond_t elfuse_cond_var;
 
 /* TODO: Prefix the values */
 enum elfuse_function_waiting_enum {
     NONE,
-    READY,
     READDIR,
     GETATTR,
     OPEN,

@@ -63,10 +63,10 @@
 
   - [X] read
 
+  - [X] use pthread [[https://computing.llnl.gov/tutorials/pthreads/#ConditionVariables][condition variables]] for better performance
+
   - [ ] универсальный механизм обмена аргументами и результатами работы запросов между Elfuse и
     Емаксом
-
-  - [ ] use pthread [[https://computing.llnl.gov/tutorials/pthreads/#ConditionVariables][condition variables]] for better performance
 
   - [ ] оставшиеся коллбеки
 
