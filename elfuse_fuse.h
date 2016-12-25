@@ -8,14 +8,14 @@ extern pthread_cond_t elfuse_cond_var;
 
 /* TODO: Prefix the values */
 extern enum elfuse_function_waiting_enum {
-    NONE,
-    READDIR,
-    GETATTR,
-    OPEN,
-    READ,
+    WAITING_NONE,
+    WAITING_READDIR,
+    WAITING_GETATTR,
+    WAITING_OPEN,
+    WAITING_READ,
 } elfuse_function_waiting;
 
-extern const char *path_arg;
+extern const char *args_path;
 
 /* GETATTR results */
 extern enum elfuse_getattr_result_enum {
@@ -36,8 +36,8 @@ extern enum elfuse_open_result_enum {
 } open_results;
 
 /* READ args and results */
-extern size_t read_args_offset;
-extern size_t read_args_size;
+extern size_t args_read_offset;
+extern size_t args_read_size;
 extern int read_results;
 extern char *read_results_data;
 
