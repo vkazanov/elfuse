@@ -101,10 +101,10 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     return nil;
 }
 
-static void elfuse_handle_readdir(emacs_env *env);
-static void elfuse_handle_getattr(emacs_env *env);
-static void elfuse_handle_open(emacs_env *env);
-static void elfuse_handle_read(emacs_env *env);
+static void elfuse_handle_readdir(emacs_env *env, const char *path);
+static void elfuse_handle_getattr(emacs_env *env, const char *path);
+static void elfuse_handle_open(emacs_env *env, const char *path);
+static void elfuse_handle_read(emacs_env *env, const char *path);
 
 static emacs_value
 Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
@@ -121,16 +121,16 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
 
     switch (elfuse_function_waiting) {
     case READDIR:
-        elfuse_handle_readdir(env);
+        elfuse_handle_readdir(env, path_arg);
         break;
     case GETATTR:
-        elfuse_handle_getattr(env);
+        elfuse_handle_getattr(env, path_arg);
         break;
     case OPEN:
-        elfuse_handle_open(env);
+        elfuse_handle_open(env, path_arg);
         break;
     case READ:
-        elfuse_handle_read(env);
+        elfuse_handle_read(env, path_arg);
         break;
     case NONE:
         break;
@@ -142,11 +142,11 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
     return t;
 }
 
-static void elfuse_handle_readdir(emacs_env *env) {
-    fprintf(stderr, "Handling READDIR (path=%s).\n", path_arg);
+static void elfuse_handle_readdir(emacs_env *env, const char *path) {
+    fprintf(stderr, "Handling READDIR (path=%s).\n", path);
 
     emacs_value args[] = {
-        env->make_string(env, path_arg, strlen(path_arg))
+        env->make_string(env, path, strlen(path))
     };
     emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
     emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
@@ -159,18 +159,18 @@ static void elfuse_handle_readdir(emacs_env *env) {
         emacs_value Spath = env->vec_get(env, file_vector, i);
         ptrdiff_t buffer_length;
         env->copy_string_contents(env, Spath, NULL, &buffer_length);
-        char *path = malloc(buffer_length);
-        env->copy_string_contents(env, Spath, path, &buffer_length);
-        readdir_results[i] = path;
+        char *dirpath = malloc(buffer_length);
+        env->copy_string_contents(env, Spath, dirpath, &buffer_length);
+        readdir_results[i] = dirpath;
     }
 
 }
 
-static void elfuse_handle_getattr(emacs_env *env) {
-    fprintf(stderr, "Handling GETATTR (path=%s).\n", path_arg);
+static void elfuse_handle_getattr(emacs_env *env, const char *path) {
+    fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
 
     emacs_value args[] = {
-        env->make_string(env, path_arg, strlen(path_arg))
+        env->make_string(env, path, strlen(path))
     };
     emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
 
@@ -189,11 +189,11 @@ static void elfuse_handle_getattr(emacs_env *env) {
 
 }
 
-static void elfuse_handle_open(emacs_env *env) {
-    fprintf(stderr, "Handling OPEN (path=%s).\n", path_arg);
+static void elfuse_handle_open(emacs_env *env, const char *path) {
+    fprintf(stderr, "Handling OPEN (path=%s).\n", path);
 
     emacs_value args[] = {
-        env->make_string(env, path_arg, strlen(path_arg))
+        env->make_string(env, path, strlen(path))
     };
     emacs_value Qopen = env->intern(env, "elfuse--open-callback");
     emacs_value Qfound = env->funcall(env, Qopen, sizeof(args)/sizeof(args[0]), args);
@@ -205,11 +205,11 @@ static void elfuse_handle_open(emacs_env *env) {
     }
 }
 
-static void elfuse_handle_read(emacs_env *env) {
-    fprintf(stderr, "Handling READ (path=%s).\n", path_arg);
+static void elfuse_handle_read(emacs_env *env, const char *path) {
+    fprintf(stderr, "Handling READ (path=%s).\n", path);
 
     emacs_value args[] = {
-        env->make_string(env, path_arg, strlen(path_arg)),
+        env->make_string(env, path, strlen(path)),
         env->make_integer(env, read_args_offset),
         env->make_integer(env, read_args_size),
     };
