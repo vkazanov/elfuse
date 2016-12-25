@@ -104,7 +104,7 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 static void elfuse_handle_readdir(emacs_env *env, const char *path);
 static void elfuse_handle_getattr(emacs_env *env, const char *path);
 static void elfuse_handle_open(emacs_env *env, const char *path);
-static void elfuse_handle_read(emacs_env *env, const char *path);
+static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
 
 static emacs_value
 Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
@@ -130,7 +130,7 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         elfuse_handle_open(env, path_arg);
         break;
     case READ:
-        elfuse_handle_read(env, path_arg);
+        elfuse_handle_read(env, path_arg, read_args_offset, read_args_size);
         break;
     case NONE:
         break;
@@ -205,13 +205,13 @@ static void elfuse_handle_open(emacs_env *env, const char *path) {
     }
 }
 
-static void elfuse_handle_read(emacs_env *env, const char *path) {
+static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size) {
     fprintf(stderr, "Handling READ (path=%s).\n", path);
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
-        env->make_integer(env, read_args_offset),
-        env->make_integer(env, read_args_size),
+        env->make_integer(env, offset),
+        env->make_integer(env, size),
     };
     emacs_value Qread = env->intern(env, "elfuse--read-callback");
     emacs_value Sdata = env->funcall(env, Qread, sizeof(args)/sizeof(args[0]), args);

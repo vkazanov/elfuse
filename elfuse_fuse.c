@@ -101,6 +101,8 @@ static int elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         filler(buf, readdir_results[i], NULL, 0);
     }
 
+    free(readdir_results);
+
     elfuse_function_waiting = NONE;
     pthread_mutex_unlock(&elfuse_mutex);
 
@@ -119,10 +121,11 @@ static int elfuse_open(const char *path, struct fuse_file_info *fi)
 
     /* Set callback args */
     path_arg = path;
-    int res = 0;
 
     /* Wait for results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+
+    int res = 0;
 
     fprintf(stderr, "OPEN received results (%d)\n", open_results == OPEN_FOUND);
 
@@ -141,7 +144,6 @@ static int elfuse_open(const char *path, struct fuse_file_info *fi)
 static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
-    size_t res;
     (void) fi;
 
     pthread_mutex_lock(&elfuse_mutex);
@@ -157,6 +159,7 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
+    size_t res;
     if (read_results >= 0) {
         fprintf(stderr, "READ received results %s(%d)\n", read_results_data, read_results);
         memcpy(buf, read_results_data, read_results);
