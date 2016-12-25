@@ -152,16 +152,16 @@ static void elfuse_handle_readdir(emacs_env *env, const char *path) {
     emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
 
     /* TODO: don't forget to free this later */
-    readdir_results_size = env->vec_size(env, file_vector);
-    readdir_results = malloc(readdir_results_size*sizeof(readdir_results[0]));
+    results_readdir_files_size = env->vec_size(env, file_vector);
+    results_readdir_files = malloc(results_readdir_files_size*sizeof(results_readdir_files[0]));
 
-    for (size_t i = 0; i < readdir_results_size; i++) {
+    for (size_t i = 0; i < results_readdir_files_size; i++) {
         emacs_value Spath = env->vec_get(env, file_vector, i);
         ptrdiff_t buffer_length;
         env->copy_string_contents(env, Spath, NULL, &buffer_length);
         char *dirpath = malloc(buffer_length);
         env->copy_string_contents(env, Spath, dirpath, &buffer_length);
-        readdir_results[i] = dirpath;
+        results_readdir_files[i] = dirpath;
     }
 
 }
@@ -179,12 +179,12 @@ static void elfuse_handle_getattr(emacs_env *env, const char *path) {
     emacs_value file_size = env->vec_get(env, getattr_result_vector, 1);
 
     if (env->eq(env, Qfiletype, env->intern(env, "file"))) {
-        getattr_results = GETATTR_FILE;
-        getattr_results_file_size = env->extract_integer(env, file_size);
+        results_getattr_code = GETATTR_FILE;
+        results_getattr_file_size = env->extract_integer(env, file_size);
     } else if (env->eq(env, Qfiletype, env->intern(env, "dir"))) {
-        getattr_results = GETATTR_DIR;
+        results_getattr_code = GETATTR_DIR;
     } else {
-        getattr_results = GETATTR_UNKNOWN;
+        results_getattr_code = GETATTR_UNKNOWN;
     }
 
 }
@@ -199,9 +199,9 @@ static void elfuse_handle_open(emacs_env *env, const char *path) {
     emacs_value Qfound = env->funcall(env, Qopen, sizeof(args)/sizeof(args[0]), args);
 
     if (env->eq(env, Qfound, t)) {
-        open_results = OPEN_FOUND;
+        results_open_code = OPEN_FOUND;
     } else {
-        open_results = OPEN_UNKNOWN;
+        results_open_code = OPEN_UNKNOWN;
     }
 }
 

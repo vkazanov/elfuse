@@ -21,15 +21,15 @@ enum elfuse_function_waiting_enum elfuse_function_waiting = WAITING_NONE;
 const char *args_path;
 
 /* GETATTR args and results */
-enum elfuse_getattr_result_enum getattr_results;
-size_t getattr_results_file_size;
+enum elfuse_results_getattr_code results_getattr_code;
+size_t results_getattr_file_size;
 
-/* READIR args and results */
-char **readdir_results;
-size_t readdir_results_size;
+/* READDIR args and results */
+char **results_readdir_files;
+size_t results_readdir_files_size;
 
 /* OPEN args and results */
-enum elfuse_open_result_enum open_results;
+enum elfuse_results_open_code results_open_code;
 
 /* READ args and results */
 size_t args_read_size;
@@ -54,12 +54,12 @@ static int elfuse_getattr(const char *path, struct stat *stbuf)
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     memset(stbuf, 0, sizeof(struct stat));
-    if (getattr_results == GETATTR_FILE) {
+    if (results_getattr_code == GETATTR_FILE) {
         fprintf(stderr, "GETATTR received results (file %s)\n", path);
         stbuf->st_mode = S_IFREG | 0444;
         stbuf->st_nlink = 1;
-        stbuf->st_size = getattr_results_file_size;
-    } else if (getattr_results == GETATTR_DIR) {
+        stbuf->st_size = results_getattr_file_size;
+    } else if (results_getattr_code == GETATTR_DIR) {
         fprintf(stderr, "GETATTR received results (dir %s)\n", path);
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2;
@@ -97,11 +97,11 @@ static int elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     fprintf(stderr, "READDIR received results\n");
-    for (size_t i = 0; i < readdir_results_size; i++) {
-        filler(buf, readdir_results[i], NULL, 0);
+    for (size_t i = 0; i < results_readdir_files_size; i++) {
+        filler(buf, results_readdir_files[i], NULL, 0);
     }
 
-    free(readdir_results);
+    free(results_readdir_files);
 
     elfuse_function_waiting = WAITING_NONE;
     pthread_mutex_unlock(&elfuse_mutex);
@@ -127,9 +127,9 @@ static int elfuse_open(const char *path, struct fuse_file_info *fi)
 
     int res = 0;
 
-    fprintf(stderr, "OPEN received results (%d)\n", open_results == OPEN_FOUND);
+    fprintf(stderr, "OPEN received results (%d)\n", results_open_code == OPEN_FOUND);
 
-    if (open_results == OPEN_FOUND) {
+    if (results_open_code == OPEN_FOUND) {
         res = 0;
     } else {
         res = -ENOENT;
