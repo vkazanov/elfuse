@@ -19,10 +19,6 @@ extern enum elfuse_function_waiting_enum elfuse_function_waiting;
 
 extern const char *path_arg;
 
-/* READIR args and results */
-extern char **readdir_results;
-extern size_t readdir_results_size;
-
 /* GETATTR args and results */
 extern enum elfuse_getattr_result_enum {
     GETATTR_FILE,
@@ -30,6 +26,10 @@ extern enum elfuse_getattr_result_enum {
     GETATTR_UNKNOWN,
 } getattr_results;
 extern size_t getattr_results_file_size;
+
+/* READIR args and results */
+extern char **readdir_results;
+extern size_t readdir_results_size;
 
 /* OPEN args and results */
 extern enum elfuse_open_result_enum {

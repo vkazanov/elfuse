@@ -20,13 +20,13 @@ enum elfuse_function_waiting_enum elfuse_function_waiting = NONE;
 
 const char *path_arg;
 
-/* READIR args and results */
-char **readdir_results;
-size_t readdir_results_size;
-
 /* GETATTR args and results */
 enum elfuse_getattr_result_enum getattr_results;
 size_t getattr_results_file_size;
+
+/* READIR args and results */
+char **readdir_results;
+size_t readdir_results_size;
 
 /* OPEN args and results */
 enum elfuse_open_result_enum open_results;
