@@ -38,7 +38,7 @@ int read_results;
 char *read_results_data;
 
 
-static int hello_getattr(const char *path, struct stat *stbuf)
+static int elfuse_getattr(const char *path, struct stat *stbuf)
 {
     int res = 0;
 
@@ -74,7 +74,7 @@ static int hello_getattr(const char *path, struct stat *stbuf)
     return res;
 }
 
-static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+static int elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			 off_t offset, struct fuse_file_info *fi)
 {
     (void) offset;
@@ -107,7 +107,7 @@ static int hello_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     return 0;
 }
 
-static int hello_open(const char *path, struct fuse_file_info *fi)
+static int elfuse_open(const char *path, struct fuse_file_info *fi)
 {
     if ((fi->flags & 3) != O_RDONLY)
         return -EACCES;
@@ -138,7 +138,7 @@ static int hello_open(const char *path, struct fuse_file_info *fi)
     return res;
 }
 
-static int hello_read(const char *path, char *buf, size_t size, off_t offset,
+static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
     size_t res;
@@ -173,11 +173,11 @@ static int hello_read(const char *path, char *buf, size_t size, off_t offset,
     return res;
 }
 
-static struct fuse_operations hello_oper = {
-    .getattr	= hello_getattr,
-    .readdir	= hello_readdir,
-    .open	= hello_open,
-    .read	= hello_read,
+static struct fuse_operations elfuse_oper = {
+    .getattr	= elfuse_getattr,
+    .readdir	= elfuse_readdir,
+    .open	= elfuse_open,
+    .read	= elfuse_read,
 };
 
 static struct fuse *f;
@@ -198,7 +198,7 @@ elfuse_fuse_loop(char* mountpath)
     if (fuse_parse_cmdline(&args, &mountpoint, NULL, NULL) != -1 &&
         (ch = fuse_mount(mountpoint, &args)) != NULL) {
 
-        f = fuse_new(ch, &args, &hello_oper, sizeof(hello_oper), NULL);
+        f = fuse_new(ch, &args, &elfuse_oper, sizeof(elfuse_oper), NULL);
         if (f != NULL) {
             fprintf(stderr, "start loop\n");
             err = fuse_loop(f);
