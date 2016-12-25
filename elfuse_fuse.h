@@ -37,8 +37,8 @@ extern enum elfuse_results_open_code {
 /* READ args and results */
 extern size_t args_read_offset;
 extern size_t args_read_size;
-extern int read_results;
-extern char *read_results_data;
+extern int results_read;
+extern char *results_read_data;
 
 int
 elfuse_fuse_loop(char* mountpath);

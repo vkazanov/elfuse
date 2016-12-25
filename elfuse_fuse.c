@@ -34,8 +34,8 @@ enum elfuse_results_open_code results_open_code;
 /* READ args and results */
 size_t args_read_size;
 size_t args_read_offset;
-int read_results;
-char *read_results_data;
+int results_read;
+char *results_read_data;
 
 
 static int elfuse_getattr(const char *path, struct stat *stbuf)
@@ -80,7 +80,7 @@ static int elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     (void) offset;
     (void) fi;
 
-    /* TODO: remove? */
+    /* TODO: this check should happen in a callback */
     if (strcmp(path, "/") != 0) {
         return -ENOENT;
     }
@@ -160,13 +160,13 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     size_t res;
-    if (read_results >= 0) {
-        fprintf(stderr, "READ received results %s(%d)\n", read_results_data, read_results);
-        memcpy(buf, read_results_data, read_results);
-        free(read_results_data);
-        res = read_results;
+    if (results_read >= 0) {
+        fprintf(stderr, "READ received results %s(%d)\n", results_read_data, results_read);
+        memcpy(buf, results_read_data, results_read);
+        free(results_read_data);
+        res = results_read;
     } else {
-        fprintf(stderr, "READ did not receive results (%d)\n", read_results);
+        fprintf(stderr, "READ did not receive results (%d)\n", results_read);
         res = -ENOENT;
     }
 

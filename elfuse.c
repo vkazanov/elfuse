@@ -218,17 +218,17 @@ static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, 
 
     if (env->eq(env, Sdata, nil)) {
         fprintf(stderr, "Handling READ: nil\n");
-        read_results = -1;
+        results_read = -1;
     } else {
         ptrdiff_t buffer_length;
         env->copy_string_contents(env, Sdata, NULL, &buffer_length);
-        read_results_data = malloc(buffer_length);
-        if (!env->copy_string_contents(env, Sdata, read_results_data, &buffer_length)) {
+        results_read_data = malloc(buffer_length);
+        if (!env->copy_string_contents(env, Sdata, results_read_data, &buffer_length)) {
             fprintf(stderr, "Failed READ: %s\n", args_path);
-            read_results = -1;
+            results_read = -1;
         } else {
-            read_results = buffer_length;
-            fprintf(stderr, "Handling READ: %s(len=%ld)\n", read_results_data, buffer_length);
+            results_read = buffer_length;
+            fprintf(stderr, "Handling READ: %s(len=%ld)\n", results_read_data, buffer_length);
         }
     }
 }
