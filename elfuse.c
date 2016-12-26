@@ -130,7 +130,7 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         elfuse_handle_open(env, args_path);
         break;
     case WAITING_READ:
-        elfuse_handle_read(env, args_path, args_read_offset, args_read_size);
+        elfuse_handle_read(env, args_path, args_read.offset, args_read.size);
         break;
     case WAITING_NONE:
         break;

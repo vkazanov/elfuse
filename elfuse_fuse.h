@@ -41,8 +41,10 @@ extern struct elfuse_results_open {
 } results_open;
 
 /* READ args and results */
-extern size_t args_read_offset;
-extern size_t args_read_size;
+extern struct elfuse_args_read {
+    size_t offset;
+    size_t size;
+} args_read;
 
 extern struct elfuse_results_read {
     int bytes_read;

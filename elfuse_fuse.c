@@ -23,16 +23,14 @@ const char *args_path;
 /* GETATTR results */
 struct elfuse_results_getattr results_getattr;
 
-/* READDIR args and results */
+/* READDIR results */
 struct elfuse_results_readdir results_readdir;
 
-/* OPEN args and results */
+/* OPEN results */
 struct elfuse_results_open results_open;
 
 /* READ args and results */
-size_t args_read_size;
-size_t args_read_offset;
-
+struct elfuse_args_read args_read;
 struct elfuse_results_read results_read;
 
 static int elfuse_getattr(const char *path, struct stat *stbuf)
@@ -150,8 +148,8 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 
     /* Set function args */
     args_path = path;
-    args_read_offset = offset;
-    args_read_size = size;
+    args_read.offset = offset;
+    args_read.size = size;
 
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
