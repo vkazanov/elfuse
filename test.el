@@ -36,7 +36,7 @@
 
 (let ((timer (run-at-time
               nil
-              0.1
+              0.01
               (lambda () (let ((check-p (elfuse--check-callbacks)))
                       (unless check-p
                         (cancel-timer timer))))))) )
