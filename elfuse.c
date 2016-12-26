@@ -121,16 +121,16 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
 
     switch (elfuse_function_waiting) {
     case WAITING_READDIR:
-        elfuse_handle_readdir(env, args_path);
+        elfuse_handle_readdir(env, args_readdir.path);
         break;
     case WAITING_GETATTR:
-        elfuse_handle_getattr(env, args_path);
+        elfuse_handle_getattr(env, args_getattr.path);
         break;
     case WAITING_OPEN:
-        elfuse_handle_open(env, args_path);
+        elfuse_handle_open(env, args_open.path);
         break;
     case WAITING_READ:
-        elfuse_handle_read(env, args_path, args_read.offset, args_read.size);
+        elfuse_handle_read(env, args_read.path, args_read.offset, args_read.size);
         break;
     case WAITING_NONE:
         break;
@@ -224,7 +224,7 @@ static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, 
         env->copy_string_contents(env, Sdata, NULL, &buffer_length);
         results_read.data = malloc(buffer_length);
         if (!env->copy_string_contents(env, Sdata, results_read.data, &buffer_length)) {
-            fprintf(stderr, "Failed READ: %s\n", args_path);
+            fprintf(stderr, "Failed READ: %s\n", path);
             results_read.bytes_read = -1;
         } else {
             results_read.bytes_read = buffer_length;

@@ -18,15 +18,16 @@ pthread_cond_t elfuse_cond_var = PTHREAD_COND_INITIALIZER;
 
 enum elfuse_function_waiting_enum elfuse_function_waiting = WAITING_NONE;
 
-const char *args_path;
-
-/* GETATTR results */
+/* GETATTR args and results */
+struct elfuse_args_getattr  args_getattr;
 struct elfuse_results_getattr results_getattr;
 
-/* READDIR results */
+/* READDIR args and results */
+struct elfuse_args_readdir  args_readdir;
 struct elfuse_results_readdir results_readdir;
 
-/* OPEN results */
+/* OPEN args and results */
+struct elfuse_args_open  args_open;
 struct elfuse_results_open results_open;
 
 /* READ args and results */
@@ -43,7 +44,7 @@ static int elfuse_getattr(const char *path, struct stat *stbuf)
     elfuse_function_waiting = WAITING_GETATTR;
 
     /* Set function args */
-    args_path = path;
+    args_getattr.path = path;
 
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
@@ -86,7 +87,7 @@ static int elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     elfuse_function_waiting = WAITING_READDIR;
 
     /* Set function args */
-    args_path = path;
+    args_readdir.path = path;
 
     /* Wait for results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
@@ -115,7 +116,7 @@ static int elfuse_open(const char *path, struct fuse_file_info *fi)
     elfuse_function_waiting = WAITING_OPEN;
 
     /* Set callback args */
-    args_path = path;
+    args_open.path = path;
 
     /* Wait for results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
@@ -147,7 +148,7 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     elfuse_function_waiting = WAITING_READ;
 
     /* Set function args */
-    args_path = path;
+    args_read.path = path;
     args_read.offset = offset;
     args_read.size = size;
 

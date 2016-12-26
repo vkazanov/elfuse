@@ -14,9 +14,11 @@ extern enum elfuse_function_waiting_enum {
     WAITING_READ,
 } elfuse_function_waiting;
 
-extern const char *args_path;
+/* GETATTR args and results */
+extern struct elfuse_args_getattr {
+    const char *path;
+} args_getattr;
 
-/* GETATTR results */
 extern struct elfuse_results_getattr {
     enum elfuse_results_getattr_code {
         GETATTR_FILE,
@@ -26,13 +28,21 @@ extern struct elfuse_results_getattr {
     size_t file_size;
 } results_getattr;
 
-/* READDIR results */
+/* READDIR arsg and results */
+extern struct elfuse_args_readdir {
+    const char *path;
+} args_readdir;
+
 extern struct elfuse_results_readdir {
     char **files;
     size_t files_size;
 } results_readdir;
 
-/* OPEN results */
+/* OPEN args and results */
+extern struct elfuse_args_open {
+    const char *path;
+} args_open;
+
 extern struct elfuse_results_open {
     enum elfuse_results_open_code {
         OPEN_FOUND,
@@ -42,6 +52,7 @@ extern struct elfuse_results_open {
 
 /* READ args and results */
 extern struct elfuse_args_read {
+    const char *path;
     size_t offset;
     size_t size;
 } args_read;
