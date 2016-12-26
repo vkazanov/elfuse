@@ -20,23 +20,20 @@ enum elfuse_function_waiting_enum elfuse_function_waiting = WAITING_NONE;
 
 const char *args_path;
 
-/* GETATTR args and results */
-enum elfuse_results_getattr_code results_getattr_code;
-size_t results_getattr_file_size;
+/* GETATTR results */
+struct elfuse_results_getattr results_getattr;
 
 /* READDIR args and results */
-char **results_readdir_files;
-size_t results_readdir_files_size;
+struct elfuse_results_readdir results_readdir;
 
 /* OPEN args and results */
-enum elfuse_results_open_code results_open_code;
+struct elfuse_results_open results_open;
 
 /* READ args and results */
 size_t args_read_size;
 size_t args_read_offset;
-int results_read;
-char *results_read_data;
 
+struct elfuse_results_read results_read;
 
 static int elfuse_getattr(const char *path, struct stat *stbuf)
 {
@@ -54,12 +51,12 @@ static int elfuse_getattr(const char *path, struct stat *stbuf)
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     memset(stbuf, 0, sizeof(struct stat));
-    if (results_getattr_code == GETATTR_FILE) {
+    if (results_getattr.code == GETATTR_FILE) {
         fprintf(stderr, "GETATTR received results (file %s)\n", path);
         stbuf->st_mode = S_IFREG | 0444;
         stbuf->st_nlink = 1;
-        stbuf->st_size = results_getattr_file_size;
-    } else if (results_getattr_code == GETATTR_DIR) {
+        stbuf->st_size = results_getattr.file_size;
+    } else if (results_getattr.code == GETATTR_DIR) {
         fprintf(stderr, "GETATTR received results (dir %s)\n", path);
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2;
@@ -97,11 +94,11 @@ static int elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     fprintf(stderr, "READDIR received results\n");
-    for (size_t i = 0; i < results_readdir_files_size; i++) {
-        filler(buf, results_readdir_files[i], NULL, 0);
+    for (size_t i = 0; i < results_readdir.files_size; i++) {
+        filler(buf, results_readdir.files[i], NULL, 0);
     }
 
-    free(results_readdir_files);
+    free(results_readdir.files);
 
     elfuse_function_waiting = WAITING_NONE;
     pthread_mutex_unlock(&elfuse_mutex);
@@ -127,9 +124,9 @@ static int elfuse_open(const char *path, struct fuse_file_info *fi)
 
     int res = 0;
 
-    fprintf(stderr, "OPEN received results (%d)\n", results_open_code == OPEN_FOUND);
+    fprintf(stderr, "OPEN received results (%d)\n", results_open.code == OPEN_FOUND);
 
-    if (results_open_code == OPEN_FOUND) {
+    if (results_open.code == OPEN_FOUND) {
         res = 0;
     } else {
         res = -ENOENT;
@@ -160,13 +157,13 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     size_t res;
-    if (results_read >= 0) {
-        fprintf(stderr, "READ received results %s(%d)\n", results_read_data, results_read);
-        memcpy(buf, results_read_data, results_read);
-        free(results_read_data);
-        res = results_read;
+    if (results_read.bytes_read >= 0) {
+        fprintf(stderr, "READ received results %s(%d)\n", results_read.data, results_read.bytes_read);
+        memcpy(buf, results_read.data, results_read.bytes_read);
+        free(results_read.data);
+        res = results_read.bytes_read;
     } else {
-        fprintf(stderr, "READ did not receive results (%d)\n", results_read);
+        fprintf(stderr, "READ did not receive results (%d)\n", results_read.bytes_read);
         res = -ENOENT;
     }
 

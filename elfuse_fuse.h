@@ -17,28 +17,37 @@ extern enum elfuse_function_waiting_enum {
 extern const char *args_path;
 
 /* GETATTR results */
-extern enum elfuse_results_getattr_code {
-    GETATTR_FILE,
-    GETATTR_DIR,
-    GETATTR_UNKNOWN,
-} results_getattr_code;
-extern size_t results_getattr_file_size;
+extern struct elfuse_results_getattr {
+    enum elfuse_results_getattr_code {
+        GETATTR_FILE,
+        GETATTR_DIR,
+        GETATTR_UNKNOWN,
+    } code;
+    size_t file_size;
+} results_getattr;
 
-/* READIR results */
-extern char **results_readdir_files;
-extern size_t results_readdir_files_size;
+/* READDIR results */
+extern struct elfuse_results_readdir {
+    char **files;
+    size_t files_size;
+} results_readdir;
 
 /* OPEN results */
-extern enum elfuse_results_open_code {
-    OPEN_FOUND,
-    OPEN_UNKNOWN,
-} results_open_code;
+extern struct elfuse_results_open {
+    enum elfuse_results_open_code {
+        OPEN_FOUND,
+        OPEN_UNKNOWN,
+    } code;
+} results_open;
 
 /* READ args and results */
 extern size_t args_read_offset;
 extern size_t args_read_size;
-extern int results_read;
-extern char *results_read_data;
+
+extern struct elfuse_results_read {
+    int bytes_read;
+    char *data;
+} results_read;
 
 int
 elfuse_fuse_loop(char* mountpath);

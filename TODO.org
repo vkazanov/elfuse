@@ -70,7 +70,7 @@
   - [ ] универсальный механизм обмена аргументами и результатами работы запросов между Elfuse и
     Емаксом
 
-  - [ ] оставшиеся коллбеки
+  - [ ] оставшиеся коллбеки (выбрать 5-10 наиболее нужных и сделать)
 
     getattr, mkdir, rmdir, rename, truncate, utime, open, read, write, statfs, flush, release,
     opendir, readdir, releasedir, fsyncdir, access, create
@@ -79,6 +79,8 @@
     указывать в getattr, в readdir должно быть возможно возвращать ошибку и т.д.)
 
   - [ ] переименования функций и методов
+
+  - [ ] just add emacs-module.h to the proj
 
   - [ ] сменить использовать f == NULL на явный флаг (атомик?) для простоты использования
 

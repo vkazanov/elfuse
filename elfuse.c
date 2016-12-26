@@ -152,16 +152,16 @@ static void elfuse_handle_readdir(emacs_env *env, const char *path) {
     emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
 
     /* TODO: don't forget to free this later */
-    results_readdir_files_size = env->vec_size(env, file_vector);
-    results_readdir_files = malloc(results_readdir_files_size*sizeof(results_readdir_files[0]));
+    results_readdir.files_size = env->vec_size(env, file_vector);
+    results_readdir.files = malloc(results_readdir.files_size*sizeof(results_readdir.files[0]));
 
-    for (size_t i = 0; i < results_readdir_files_size; i++) {
+    for (size_t i = 0; i < results_readdir.files_size; i++) {
         emacs_value Spath = env->vec_get(env, file_vector, i);
         ptrdiff_t buffer_length;
         env->copy_string_contents(env, Spath, NULL, &buffer_length);
         char *dirpath = malloc(buffer_length);
         env->copy_string_contents(env, Spath, dirpath, &buffer_length);
-        results_readdir_files[i] = dirpath;
+        results_readdir.files[i] = dirpath;
     }
 
 }
@@ -179,12 +179,12 @@ static void elfuse_handle_getattr(emacs_env *env, const char *path) {
     emacs_value file_size = env->vec_get(env, getattr_result_vector, 1);
 
     if (env->eq(env, Qfiletype, env->intern(env, "file"))) {
-        results_getattr_code = GETATTR_FILE;
-        results_getattr_file_size = env->extract_integer(env, file_size);
+        results_getattr.code = GETATTR_FILE;
+        results_getattr.file_size = env->extract_integer(env, file_size);
     } else if (env->eq(env, Qfiletype, env->intern(env, "dir"))) {
-        results_getattr_code = GETATTR_DIR;
+        results_getattr.code = GETATTR_DIR;
     } else {
-        results_getattr_code = GETATTR_UNKNOWN;
+        results_getattr.code = GETATTR_UNKNOWN;
     }
 
 }
@@ -199,9 +199,9 @@ static void elfuse_handle_open(emacs_env *env, const char *path) {
     emacs_value Qfound = env->funcall(env, Qopen, sizeof(args)/sizeof(args[0]), args);
 
     if (env->eq(env, Qfound, t)) {
-        results_open_code = OPEN_FOUND;
+        results_open.code = OPEN_FOUND;
     } else {
-        results_open_code = OPEN_UNKNOWN;
+        results_open.code = OPEN_UNKNOWN;
     }
 }
 
@@ -218,17 +218,17 @@ static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, 
 
     if (env->eq(env, Sdata, nil)) {
         fprintf(stderr, "Handling READ: nil\n");
-        results_read = -1;
+        results_read.bytes_read = -1;
     } else {
         ptrdiff_t buffer_length;
         env->copy_string_contents(env, Sdata, NULL, &buffer_length);
-        results_read_data = malloc(buffer_length);
-        if (!env->copy_string_contents(env, Sdata, results_read_data, &buffer_length)) {
+        results_read.data = malloc(buffer_length);
+        if (!env->copy_string_contents(env, Sdata, results_read.data, &buffer_length)) {
             fprintf(stderr, "Failed READ: %s\n", args_path);
-            results_read = -1;
+            results_read.bytes_read = -1;
         } else {
-            results_read = buffer_length;
-            fprintf(stderr, "Handling READ: %s(len=%ld)\n", results_read_data, buffer_length);
+            results_read.bytes_read = buffer_length;
+            fprintf(stderr, "Handling READ: %s(len=%ld)\n", results_read.data, buffer_length);
         }
     }
 }
