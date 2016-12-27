@@ -6,61 +6,79 @@
 extern pthread_mutex_t elfuse_mutex;
 extern pthread_cond_t elfuse_cond_var;
 
-extern enum elfuse_function_waiting_enum {
-    WAITING_NONE,
-    WAITING_READDIR,
-    WAITING_GETATTR,
-    WAITING_OPEN,
-    WAITING_READ,
-} elfuse_function_waiting;
-
 /* GETATTR args and results */
-extern struct elfuse_args_getattr {
+struct elfuse_args_getattr {
     const char *path;
-} args_getattr;
+};
 
-extern struct elfuse_results_getattr {
+struct elfuse_results_getattr {
     enum elfuse_results_getattr_code {
         GETATTR_FILE,
         GETATTR_DIR,
         GETATTR_UNKNOWN,
     } code;
     size_t file_size;
-} results_getattr;
+};
 
 /* READDIR arsg and results */
-extern struct elfuse_args_readdir {
+struct elfuse_args_readdir {
     const char *path;
-} args_readdir;
+};
 
-extern struct elfuse_results_readdir {
+struct elfuse_results_readdir {
     char **files;
     size_t files_size;
-} results_readdir;
+};
 
 /* OPEN args and results */
-extern struct elfuse_args_open {
+struct elfuse_args_open {
     const char *path;
-} args_open;
+};
 
-extern struct elfuse_results_open {
+struct elfuse_results_open {
     enum elfuse_results_open_code {
         OPEN_FOUND,
         OPEN_UNKNOWN,
     } code;
-} results_open;
+};
 
 /* READ args and results */
-extern struct elfuse_args_read {
+struct elfuse_args_read {
     const char *path;
     size_t offset;
     size_t size;
-} args_read;
+};
 
-extern struct elfuse_results_read {
+struct elfuse_results_read {
     int bytes_read;
     char *data;
-} results_read;
+};
+
+/* A unified data exchange struct. */
+struct elfuse_call_state {
+    enum elfuse_state {
+        WAITING_NONE,
+        WAITING_READDIR,
+        WAITING_GETATTR,
+        WAITING_OPEN,
+        WAITING_READ,
+    } state;
+
+    union args {
+        struct elfuse_args_getattr getattr;
+        struct elfuse_args_read read;
+        struct elfuse_args_readdir readdir;
+        struct elfuse_args_open open;
+    } args;
+
+    union results {
+        struct elfuse_results_getattr getattr;
+        struct elfuse_results_read read;
+        struct elfuse_results_readdir readdir;
+        struct elfuse_results_open open;
+    } results;
+
+} elfuse_call;
 
 int
 elfuse_fuse_loop(char* mountpath);
