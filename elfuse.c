@@ -101,6 +101,7 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     return nil;
 }
 
+static void elfuse_handle_create(emacs_env *env, const char *path);
 static void elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath);
 static void elfuse_handle_readdir(emacs_env *env, const char *path);
 static void elfuse_handle_getattr(emacs_env *env, const char *path);
@@ -121,6 +122,9 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         return t;
 
     switch (elfuse_call.state) {
+    case WAITING_CREATE:
+        elfuse_handle_create(env, elfuse_call.args.create.path);
+        break;
     case WAITING_RENAME:
         elfuse_handle_rename(env, elfuse_call.args.rename.oldpath, elfuse_call.args.rename.newpath);
         break;
@@ -146,6 +150,20 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
     pthread_mutex_unlock(&elfuse_mutex);
 
     return t;
+}
+
+static void elfuse_handle_create(emacs_env *env, const char *path)
+{
+    fprintf(stderr, "Handling CREATE (path=%s).\n", path);
+
+    emacs_value args[] = {
+        env->make_string(env, path, strlen(path)),
+    };
+    emacs_value Qrename = env->intern(env, "elfuse--create-callback");
+    emacs_value Ires_code = env->funcall(env, Qrename, sizeof(args)/sizeof(args[0]), args);
+    int res_code = env->extract_integer(env, Ires_code);
+    fprintf(stderr, "CREATE result = %d\n", res_code);
+    elfuse_call.results.create.code = res_code >= 0 ? CREATE_DONE : CREATE_FAIL;
 }
 
 static void elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)

@@ -6,7 +6,19 @@
 extern pthread_mutex_t elfuse_mutex;
 extern pthread_cond_t elfuse_cond_var;
 
-/* RENAME args and results*/
+/* CREATE args and results */
+struct elfuse_args_create {
+    const char *path;
+};
+
+struct elfuse_results_create {
+    enum elfuse_results_create_code {
+        CREATE_FAIL,
+        CREATE_DONE
+    } code;
+};
+
+/* RENAME args and results */
 struct elfuse_args_rename {
     const char *oldpath;
     const char *newpath;
@@ -71,6 +83,7 @@ struct elfuse_results_read {
 struct elfuse_call_state {
     enum elfuse_state {
         WAITING_NONE,
+        WAITING_CREATE,
         WAITING_RENAME,
         WAITING_GETATTR,
         WAITING_READDIR,
@@ -79,6 +92,7 @@ struct elfuse_call_state {
     } state;
 
     union args {
+        struct elfuse_args_create create;
         struct elfuse_args_rename rename;
         struct elfuse_args_getattr getattr;
         struct elfuse_args_read read;
@@ -87,6 +101,7 @@ struct elfuse_call_state {
     } args;
 
     union results {
+        struct elfuse_results_create create;
         struct elfuse_results_rename rename;
         struct elfuse_results_getattr getattr;
         struct elfuse_results_read read;

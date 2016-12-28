@@ -20,6 +20,37 @@ struct elfuse_call_state elfuse_call = {
     .state = WAITING_NONE
 };
 
+static int elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+{
+    (void) mode;
+    (void) fi;
+
+    pthread_mutex_lock(&elfuse_mutex);
+
+    /* Function to call */
+    elfuse_call.state = WAITING_CREATE;
+
+    /* Set function args */
+    elfuse_call.args.create.path = path;
+
+    /* Wait for the funcall results */
+    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+
+    int res = 0;
+    if (elfuse_call.results.create.code == CREATE_DONE) {
+        fprintf(stderr, "CREATE received results (code=DONE)\n");
+        /* Just return zero (success) */
+    } else {
+        fprintf(stderr, "CREATE received results (code=FAIL)\n");
+        res = -ENOENT;
+    }
+
+    elfuse_call.state = WAITING_NONE;
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    return res;
+}
+
 static int elfuse_rename(const char *oldpath, const char *newpath)
 {
 
@@ -189,6 +220,7 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 }
 
 static struct fuse_operations elfuse_oper = {
+    .create	= elfuse_create,
     .rename	= elfuse_rename,
     .getattr	= elfuse_getattr,
     .readdir	= elfuse_readdir,

@@ -1,6 +1,9 @@
 (require 'elfuse)
 (require 'seq)
 
+(defun elfuse--create-callback (path)
+  (if (member oldpath '("/hello" "/other" "/etc")) -1 1))
+
 (defun elfuse--rename-callback (oldpath newpath)
   (if (member oldpath '("/hello" "/other" "/etc")) 1 -1))
 

@@ -79,15 +79,15 @@
 
     - [X] rename,
 
-    - [ ] create,
-
-    - [ ] open,
-
-    - [ ] release,
+    - [X] create,
 
     - [ ] read,
 
     - [ ] write,
+
+    - [ ] open,
+
+    - [ ] release (close?),
 
     - [ ] getattr,
 
