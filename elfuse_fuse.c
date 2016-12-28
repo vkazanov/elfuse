@@ -20,6 +20,36 @@ struct elfuse_call_state elfuse_call = {
     .state = WAITING_NONE
 };
 
+static int elfuse_rename(const char *oldpath, const char *newpath)
+{
+
+    pthread_mutex_lock(&elfuse_mutex);
+
+    /* Function to call */
+    elfuse_call.state = WAITING_RENAME;
+
+    /* Set function args */
+    elfuse_call.args.rename.oldpath = oldpath;
+    elfuse_call.args.rename.newpath = newpath;
+
+    /* Wait for the funcall results */
+    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+
+    int res = 0;
+    if (elfuse_call.results.rename.code == RENAME_DONE) {
+        fprintf(stderr, "RENAME received results (code=DONE)\n");
+        /* Just return zero (success) */
+    } else {
+        fprintf(stderr, "RENAME received results (code=UNKNOWN)\n");
+        res = -ENOENT;
+    }
+
+    elfuse_call.state = WAITING_NONE;
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    return res;
+}
+
 static int elfuse_getattr(const char *path, struct stat *stbuf)
 {
     int res = 0;
@@ -159,6 +189,7 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 }
 
 static struct fuse_operations elfuse_oper = {
+    .rename	= elfuse_rename,
     .getattr	= elfuse_getattr,
     .readdir	= elfuse_readdir,
     .open	= elfuse_open,

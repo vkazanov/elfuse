@@ -1,6 +1,9 @@
 (require 'elfuse)
 (require 'seq)
 
+(defun elfuse--rename-callback (oldpath newpath)
+  (if (member oldpath '("/hello" "/other" "/etc")) 1 -1))
+
 (defun elfuse--readdir-callback (path)
   ["." ".." "hello" "other" "etc"])
 
@@ -21,12 +24,12 @@
 
 (defun elfuse--read-callback (path offset size)
   (cond
-   ((equal path "/hello") (elfuse--read-substring "hellodata" offset size))
-   ((equal path "/other") (elfuse--read-substring "otherdata" offset size))
-   ((equal path "/etc") (elfuse--read-substring "etcdata" offset size))
+   ((equal path "/hello") (elfuse--substring "hellodata" offset size))
+   ((equal path "/other") (elfuse--substring "otherdata" offset size))
+   ((equal path "/etc") (elfuse--substring "etcdata" offset size))
    (t nil)))
 
-(defun elfuse--read-substring (str offset size)
+(defun elfuse--substring (str offset size)
   (cond
    ((> offset (seq-length str)) "")
    ((> (+ offset size) (seq-length str)) (seq-subseq str offset))

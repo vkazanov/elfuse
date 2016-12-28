@@ -101,6 +101,7 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     return nil;
 }
 
+static void elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath);
 static void elfuse_handle_readdir(emacs_env *env, const char *path);
 static void elfuse_handle_getattr(emacs_env *env, const char *path);
 static void elfuse_handle_open(emacs_env *env, const char *path);
@@ -120,6 +121,9 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         return t;
 
     switch (elfuse_call.state) {
+    case WAITING_RENAME:
+        elfuse_handle_rename(env, elfuse_call.args.rename.oldpath, elfuse_call.args.rename.newpath);
+        break;
     case WAITING_READDIR:
         elfuse_handle_readdir(env, elfuse_call.args.readdir.path);
         break;
@@ -144,7 +148,23 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
     return t;
 }
 
-static void elfuse_handle_readdir(emacs_env *env, const char *path) {
+static void elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
+{
+    fprintf(stderr, "Handling RENAME (oldpath=%s, newpath=%s).\n", oldpath, newpath);
+
+    emacs_value args[] = {
+        env->make_string(env, oldpath, strlen(oldpath)),
+        env->make_string(env, newpath, strlen(newpath)),
+    };
+    emacs_value Qrename = env->intern(env, "elfuse--rename-callback");
+    emacs_value Ires_code = env->funcall(env, Qrename, sizeof(args)/sizeof(args[0]), args);
+    int res_code = env->extract_integer(env, Ires_code);
+    fprintf(stderr, "RENAME result = %d\n", res_code);
+    elfuse_call.results.rename.code = res_code >= 0 ? RENAME_DONE : RENAME_UNKNOWN;
+}
+
+static void elfuse_handle_readdir(emacs_env *env, const char *path)
+{
     fprintf(stderr, "Handling READDIR (path=%s).\n", path);
 
     emacs_value args[] = {
@@ -168,7 +188,8 @@ static void elfuse_handle_readdir(emacs_env *env, const char *path) {
 
 }
 
-static void elfuse_handle_getattr(emacs_env *env, const char *path) {
+static void elfuse_handle_getattr(emacs_env *env, const char *path)
+{
     fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
 
     emacs_value args[] = {
@@ -191,7 +212,8 @@ static void elfuse_handle_getattr(emacs_env *env, const char *path) {
 
 }
 
-static void elfuse_handle_open(emacs_env *env, const char *path) {
+static void elfuse_handle_open(emacs_env *env, const char *path)
+{
     fprintf(stderr, "Handling OPEN (path=%s).\n", path);
 
     emacs_value args[] = {
@@ -207,7 +229,8 @@ static void elfuse_handle_open(emacs_env *env, const char *path) {
     }
 }
 
-static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size) {
+static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
+{
     fprintf(stderr, "Handling READ (path=%s).\n", path);
 
     emacs_value args[] = {
