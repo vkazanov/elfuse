@@ -38,6 +38,14 @@
    ((> (+ offset size) (seq-length str)) (seq-subseq str offset))
    (t (seq-subseq str offset (+ offset size)))))
 
+(defun elfuse--write-callback (path buf offset)
+  (message "WRITE: %s %d" buf offset)
+  (cond
+   ((equal path "/hello") 1)
+   ((equal path "/other") 2)
+   ((equal path "/etc") 3)
+   (t 0)))
+
 (elfuse--start "mount/")
 
 (let ((timer (run-at-time

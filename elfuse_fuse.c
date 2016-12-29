@@ -99,7 +99,7 @@ static int elfuse_getattr(const char *path, struct stat *stbuf)
     memset(stbuf, 0, sizeof(struct stat));
     if (elfuse_call.results.getattr.code == GETATTR_FILE) {
         fprintf(stderr, "GETATTR received results (file %s)\n", path);
-        stbuf->st_mode = S_IFREG | 0444;
+        stbuf->st_mode = S_IFREG | 0666;
         stbuf->st_nlink = 1;
         stbuf->st_size = elfuse_call.results.getattr.file_size;
     } else if (elfuse_call.results.getattr.code == GETATTR_DIR) {
@@ -219,6 +219,40 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     return res;
 }
 
+static int elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
+                        struct fuse_file_info *fi)
+{
+    (void) fi;
+    pthread_mutex_lock(&elfuse_mutex);
+
+    /* Function to call */
+    elfuse_call.state = WAITING_WRITE;
+
+    /* Set function args */
+    elfuse_call.args.write.path = path;
+    elfuse_call.args.write.buf = buf;
+    elfuse_call.args.write.size = size;
+    elfuse_call.args.write.offset = offset;
+
+    /* Wait for the funcall results */
+    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+
+    size_t res;
+    if (elfuse_call.results.write.size >= 0) {
+        fprintf(stderr, "WRITE received results %d\n", elfuse_call.results.write.size);
+        res = elfuse_call.results.write.size;
+    } else {
+        fprintf(stderr, "WRITE did not receive results (%d)\n", elfuse_call.results.write.size);
+        res = -ENOENT;
+    }
+
+    elfuse_call.state = WAITING_NONE;
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    return res;
+}
+
+
 static struct fuse_operations elfuse_oper = {
     .create	= elfuse_create,
     .rename	= elfuse_rename,
@@ -226,6 +260,7 @@ static struct fuse_operations elfuse_oper = {
     .readdir	= elfuse_readdir,
     .open	= elfuse_open,
     .read	= elfuse_read,
+    .write	= elfuse_write,
 };
 
 static struct fuse *f;

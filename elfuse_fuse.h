@@ -79,6 +79,18 @@ struct elfuse_results_read {
     char *data;
 };
 
+/* WRITE args and results */
+struct elfuse_args_write {
+    const char *path;
+    const char *buf;
+    size_t size;
+    size_t offset;
+};
+
+struct elfuse_results_write {
+    int size;
+};
+
 /* A unified data exchange struct. */
 struct elfuse_call_state {
     enum elfuse_state {
@@ -89,24 +101,27 @@ struct elfuse_call_state {
         WAITING_READDIR,
         WAITING_OPEN,
         WAITING_READ,
+        WAITING_WRITE,
     } state;
 
     union args {
         struct elfuse_args_create create;
         struct elfuse_args_rename rename;
         struct elfuse_args_getattr getattr;
-        struct elfuse_args_read read;
         struct elfuse_args_readdir readdir;
         struct elfuse_args_open open;
+        struct elfuse_args_read read;
+        struct elfuse_args_write write;
     } args;
 
     union results {
         struct elfuse_results_create create;
         struct elfuse_results_rename rename;
         struct elfuse_results_getattr getattr;
-        struct elfuse_results_read read;
         struct elfuse_results_readdir readdir;
         struct elfuse_results_open open;
+        struct elfuse_results_read read;
+        struct elfuse_results_write write;
     } results;
 
 } elfuse_call;
