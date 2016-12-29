@@ -106,6 +106,7 @@ static void elfuse_handle_rename(emacs_env *env, const char *oldpath, const char
 static void elfuse_handle_readdir(emacs_env *env, const char *path);
 static void elfuse_handle_getattr(emacs_env *env, const char *path);
 static void elfuse_handle_open(emacs_env *env, const char *path);
+static void elfuse_handle_release(emacs_env *env, const char *path);
 static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
 static void elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
 
@@ -137,6 +138,9 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         break;
     case WAITING_OPEN:
         elfuse_handle_open(env, elfuse_call.args.open.path);
+        break;
+    case WAITING_RELEASE:
+        elfuse_handle_release(env, elfuse_call.args.open.path);
         break;
     case WAITING_READ:
         elfuse_handle_read(
@@ -255,6 +259,24 @@ elfuse_handle_open(emacs_env *env, const char *path)
         elfuse_call.results.open.code = OPEN_FOUND;
     } else {
         elfuse_call.results.open.code = OPEN_UNKNOWN;
+    }
+}
+
+static void
+elfuse_handle_release(emacs_env *env, const char *path)
+{
+    fprintf(stderr, "Handling RELEASE (path=%s).\n", path);
+
+    emacs_value args[] = {
+        env->make_string(env, path, strlen(path))
+    };
+    emacs_value Qrelease = env->intern(env, "elfuse--release-callback");
+    emacs_value Qfound = env->funcall(env, Qrelease, sizeof(args)/sizeof(args[0]), args);
+
+    if (env->eq(env, Qfound, t)) {
+        elfuse_call.results.release.code = RELEASE_FOUND;
+    } else {
+        elfuse_call.results.release.code = RELEASE_UNKNOWN;
     }
 }
 

@@ -184,6 +184,38 @@ static int elfuse_open(const char *path, struct fuse_file_info *fi)
     return res;
 }
 
+static int elfuse_release(const char *path, struct fuse_file_info *fi)
+{
+    if ((fi->flags & 3) != O_RDONLY)
+        return -EACCES;
+
+    pthread_mutex_lock(&elfuse_mutex);
+
+    /* Function to call */
+    elfuse_call.state = WAITING_RELEASE;
+
+    /* Set callback args */
+    elfuse_call.args.release.path = path;
+
+    /* Wait for results */
+    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+
+    int res = 0;
+
+    fprintf(stderr, "RELEASE received results (%d)\n", elfuse_call.results.release.code == RELEASE_FOUND);
+
+    if (elfuse_call.results.release.code == RELEASE_FOUND) {
+        res = 0;
+    } else {
+        res = -ENOENT;
+    }
+
+    elfuse_call.state = WAITING_NONE;
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    return res;
+}
+
 static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
@@ -259,6 +291,7 @@ static struct fuse_operations elfuse_oper = {
     .getattr	= elfuse_getattr,
     .readdir	= elfuse_readdir,
     .open	= elfuse_open,
+    .release	= elfuse_release,
     .read	= elfuse_read,
     .write	= elfuse_write,
 };

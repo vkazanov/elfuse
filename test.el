@@ -25,6 +25,9 @@
    ((equal path "/etc") t)
    (t nil)))
 
+(defun elfuse--release-callback (path)
+  (elfuse--open-callback path))
+
 (defun elfuse--read-callback (path offset size)
   (cond
    ((equal path "/hello") (elfuse--substring "hellodata" offset size))

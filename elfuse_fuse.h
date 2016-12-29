@@ -67,6 +67,18 @@ struct elfuse_results_open {
     } code;
 };
 
+/* OPEN args and results */
+struct elfuse_args_release {
+    const char *path;
+};
+
+struct elfuse_results_release {
+    enum elfuse_results_release_code {
+        RELEASE_FOUND,
+        RELEASE_UNKNOWN,
+    } code;
+};
+
 /* READ args and results */
 struct elfuse_args_read {
     const char *path;
@@ -100,6 +112,7 @@ struct elfuse_call_state {
         WAITING_GETATTR,
         WAITING_READDIR,
         WAITING_OPEN,
+        WAITING_RELEASE,
         WAITING_READ,
         WAITING_WRITE,
     } state;
@@ -110,6 +123,7 @@ struct elfuse_call_state {
         struct elfuse_args_getattr getattr;
         struct elfuse_args_readdir readdir;
         struct elfuse_args_open open;
+        struct elfuse_args_release release;
         struct elfuse_args_read read;
         struct elfuse_args_write write;
     } args;
@@ -120,6 +134,7 @@ struct elfuse_call_state {
         struct elfuse_results_getattr getattr;
         struct elfuse_results_readdir readdir;
         struct elfuse_results_open open;
+        struct elfuse_results_release release;
         struct elfuse_results_read read;
         struct elfuse_results_write write;
     } results;
