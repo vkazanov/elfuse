@@ -103,6 +103,19 @@ struct elfuse_results_write {
     int size;
 };
 
+/* TRUNCATE args and results */
+struct elfuse_args_truncate {
+    const char *path;
+    size_t size;
+};
+
+struct elfuse_results_truncate {
+    enum elfuse_results_truncate_code {
+        TRUNCATE_DONE,
+        TRUNCATE_UNKNOWN,
+    } code;
+};
+
 /* A unified data exchange struct. */
 struct elfuse_call_state {
     enum elfuse_state {
@@ -115,6 +128,7 @@ struct elfuse_call_state {
         WAITING_RELEASE,
         WAITING_READ,
         WAITING_WRITE,
+        WAITING_TRUNCATE,
     } state;
 
     union args {
@@ -126,6 +140,7 @@ struct elfuse_call_state {
         struct elfuse_args_release release;
         struct elfuse_args_read read;
         struct elfuse_args_write write;
+        struct elfuse_args_truncate truncate;
     } args;
 
     union results {
@@ -137,6 +152,7 @@ struct elfuse_call_state {
         struct elfuse_results_release release;
         struct elfuse_results_read read;
         struct elfuse_results_write write;
+        struct elfuse_results_truncate truncate;
     } results;
 
 } elfuse_call;

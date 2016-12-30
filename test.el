@@ -49,6 +49,14 @@
    ((equal path "/etc") 3)
    (t 0)))
 
+(defun elfuse--truncate-callback (path offset)
+  (message "TRUNCATE: %s %d" path offset)
+  (cond
+   ((equal path "/hello") 0)
+   ((equal path "/other") 0)
+   ((equal path "/etc") 0)
+   (t -1)))
+
 (elfuse--start "mount/")
 
 (let ((timer (run-at-time

@@ -109,6 +109,7 @@ static void elfuse_handle_open(emacs_env *env, const char *path);
 static void elfuse_handle_release(emacs_env *env, const char *path);
 static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
 static void elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
+static void elfuse_handle_truncate(emacs_env *env, const char *path, off_t size);
 
 static emacs_value
 Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
@@ -151,6 +152,9 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         elfuse_handle_write(
             env, elfuse_call.args.write.path, elfuse_call.args.write.buf, elfuse_call.args.write.size, elfuse_call.args.write.offset
         );
+        break;
+    case WAITING_TRUNCATE:
+        elfuse_handle_truncate(env, elfuse_call.args.truncate.path, elfuse_call.args.truncate.size);
         break;
     case WAITING_NONE:
         break;
@@ -327,6 +331,24 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
         elfuse_call.results.write.size  = size;
     } else {
         elfuse_call.results.write.size  = res_code;
+    }
+}
+
+static void
+elfuse_handle_truncate(emacs_env *env, const char *path, off_t size)
+{
+    fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
+
+    emacs_value args[] = {
+        env->make_string(env, path, strlen(path)),
+        env->make_integer(env, size),
+    };
+    emacs_value Qtruncate = env->intern(env, "elfuse--truncate-callback");
+    emacs_value Ires_code = env->funcall(env, Qtruncate, sizeof(args)/sizeof(args[0]), args);
+    if (env->extract_integer(env, Ires_code) >= 0) {
+        elfuse_call.results.truncate.code  = TRUNCATE_DONE;
+    } else {
+        elfuse_call.results.truncate.code  = TRUNCATE_UNKNOWN;
     }
 }
 

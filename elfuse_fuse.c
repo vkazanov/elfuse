@@ -20,7 +20,8 @@ struct elfuse_call_state elfuse_call = {
     .state = WAITING_NONE
 };
 
-static int elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+static int
+elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
     (void) mode;
     (void) fi;
@@ -51,7 +52,8 @@ static int elfuse_create(const char *path, mode_t mode, struct fuse_file_info *f
     return res;
 }
 
-static int elfuse_rename(const char *oldpath, const char *newpath)
+static int
+elfuse_rename(const char *oldpath, const char *newpath)
 {
 
     pthread_mutex_lock(&elfuse_mutex);
@@ -81,7 +83,8 @@ static int elfuse_rename(const char *oldpath, const char *newpath)
     return res;
 }
 
-static int elfuse_getattr(const char *path, struct stat *stbuf)
+static int
+elfuse_getattr(const char *path, struct stat *stbuf)
 {
     int res = 0;
 
@@ -117,7 +120,8 @@ static int elfuse_getattr(const char *path, struct stat *stbuf)
     return res;
 }
 
-static int elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+static int
+elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			 off_t offset, struct fuse_file_info *fi)
 {
     (void) offset;
@@ -152,7 +156,8 @@ static int elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     return 0;
 }
 
-static int elfuse_open(const char *path, struct fuse_file_info *fi)
+static int
+elfuse_open(const char *path, struct fuse_file_info *fi)
 {
     if ((fi->flags & 3) != O_RDONLY)
         return -EACCES;
@@ -184,7 +189,8 @@ static int elfuse_open(const char *path, struct fuse_file_info *fi)
     return res;
 }
 
-static int elfuse_release(const char *path, struct fuse_file_info *fi)
+static int
+elfuse_release(const char *path, struct fuse_file_info *fi)
 {
     if ((fi->flags & 3) != O_RDONLY)
         return -EACCES;
@@ -216,7 +222,8 @@ static int elfuse_release(const char *path, struct fuse_file_info *fi)
     return res;
 }
 
-static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
+static int
+elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi)
 {
     (void) fi;
@@ -251,7 +258,8 @@ static int elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     return res;
 }
 
-static int elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
+static int
+elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
                         struct fuse_file_info *fi)
 {
     (void) fi;
@@ -284,6 +292,35 @@ static int elfuse_write(const char *path, const char *buf, size_t size, off_t of
     return res;
 }
 
+static int
+elfuse_truncate(const char *path, off_t size)
+{
+    pthread_mutex_lock(&elfuse_mutex);
+
+    /* Function to call */
+    elfuse_call.state = WAITING_TRUNCATE;
+
+    /* Set function args */
+    elfuse_call.args.write.path = path;
+    elfuse_call.args.write.size = size;
+
+    /* Wait for the funcall results */
+    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+
+    size_t res;
+    if (elfuse_call.results.truncate.code == TRUNCATE_DONE) {
+        fprintf(stderr, "TRUNCATE received results %d\n", elfuse_call.results.truncate.code);
+        res = 0;
+    } else {
+        fprintf(stderr, "TRUNCATE did not receive results (%d)\n", elfuse_call.results.truncate.code);
+        res = -ENOENT;
+    }
+
+    elfuse_call.state = WAITING_NONE;
+    pthread_mutex_unlock(&elfuse_mutex);
+
+    return res;
+}
 
 static struct fuse_operations elfuse_oper = {
     .create	= elfuse_create,
@@ -294,6 +331,7 @@ static struct fuse_operations elfuse_oper = {
     .release	= elfuse_release,
     .read	= elfuse_read,
     .write	= elfuse_write,
+    .truncate	= elfuse_truncate,
 };
 
 static struct fuse *f;
