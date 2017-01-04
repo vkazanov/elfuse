@@ -1,4 +1,4 @@
-(require 'elfuse)
+(require 'elfuse-module)
 (require 'seq)
 
 (defun elfuse--create-callback (path)

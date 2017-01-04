@@ -8,7 +8,7 @@
 
 #include <emacs-module.h>
 
-#include "elfuse_fuse.h"
+#include "elfuse-fuse.h"
 
 int plugin_is_GPL_compatible;
 
@@ -385,7 +385,7 @@ emacs_module_init (struct emacs_runtime *ert)
     );
     bind_function (env, "elfuse--check-callbacks", fun);
 
-    provide (env, "elfuse");
+    provide (env, "elfuse-module");
 
     return 0;
 }

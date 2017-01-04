@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <assert.h>
 
-#include "elfuse_fuse.h"
+#include "elfuse-fuse.h"
 
 pthread_mutex_t elfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t elfuse_cond_var = PTHREAD_COND_INITIALIZER;

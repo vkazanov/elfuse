@@ -1,15 +1,15 @@
-# EMACSSRC    = /home/vladimirkazanov/var/emacs
-EMACSSRC    = /home/vkazanov/var/emacs
+EMACSSRC    = /home/vladimirkazanov/var/emacs
+# EMACSSRC    = /home/vkazanov/var/emacs
 CC      = gcc
 LD      = gcc
 CFLAGS  = -ggdb3 -Wall `pkg-config fuse --cflags`
 LDFLAGS = `pkg-config fuse --libs` -pthread -Wl,--no-undefined
-DEPS = elfuse_fuse.h
-OBJ = elfuse.o elfuse_fuse.o
+DEPS = elfuse-fuse.h
+OBJ = elfuse-module.o elfuse-fuse.o
 
-all: elfuse.so
+all: elfuse-module.so
 
-elfuse.so: $(OBJ)
+elfuse-module.so: $(OBJ)
 	$(LD) -shared -o $@ $^ $(LDFLAGS)
 
 %.o: %.c $(DEPS)
@@ -17,4 +17,4 @@ elfuse.so: $(OBJ)
 
 clean:
 	rm $(OBJ)
-	rm elfuse.so
+	rm elfuse-module.so
