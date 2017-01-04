@@ -97,11 +97,9 @@
 
   - [X] переименования функций, методов и модулей
 
+  - [X] just add emacs-module.h to the proj?
+
   - [ ] неопределенные коллбэки (должны отвечать стандартным кодом ошибки elfuse)
-
-  - [ ] just add emacs-module.h to the proj?
-
-  - [ ] relative path to emacs in the Makefile?
 
   - [ ] сменить использовать f == NULL на явный флаг (атомик?) для простоты использования
 

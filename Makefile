@@ -1,5 +1,3 @@
-EMACSSRC    = /home/vladimirkazanov/var/emacs
-# EMACSSRC    = /home/vkazanov/var/emacs
 CC      = gcc
 LD      = gcc
 CFLAGS  = -ggdb3 -Wall `pkg-config fuse --cflags`
@@ -13,7 +11,7 @@ elfuse-module.so: $(OBJ)
 	$(LD) -shared -o $@ $^ $(LDFLAGS)
 
 %.o: %.c $(DEPS)
-	$(CC) $(CFLAGS) -I$(EMACSSRC)/src -fPIC -c $<
+	$(CC) $(CFLAGS) -fPIC -c $<
 
 clean:
 	rm $(OBJ)

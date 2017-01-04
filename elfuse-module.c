@@ -6,8 +6,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include <emacs-module.h>
-
+#include "emacs-module.h"
 #include "elfuse-fuse.h"
 
 int plugin_is_GPL_compatible;
