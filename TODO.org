@@ -99,6 +99,8 @@
 
   - [X] just add emacs-module.h to the proj?
 
+  - [X] start the testing instance from the Makefile
+
   - [ ] неопределенные коллбэки (должны отвечать стандартным кодом ошибки elfuse)
 
   - [ ] сменить использовать f == NULL на явный флаг (атомик?) для простоты использования
