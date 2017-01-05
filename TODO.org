@@ -101,7 +101,50 @@
 
   - [X] start the testing instance from the Makefile
 
-  - [ ] неопределенные коллбэки (должны отвечать стандартным кодом ошибки elfuse)
+  - [-] неопределенные коллбэки (должны отвечать стандартным кодом ошибки elfuse)
+
+    - [X] новое состояние elfuse_state
+
+    - [X] понять, где и что надо возвращать
+
+      If the operation is not defined, they return -ENOSYS, with the exception of fuse_fs_open,
+      fuse_fs_release, fuse_fs_opendir, fuse_fs_releasedir and fuse_fs_statfs, which return 0.
+
+    - [ ] create
+
+      -ENOSYS
+
+    - [ ] rename
+
+      -ENOSYS
+
+    - [ ] getattr
+
+      -ENOSYS
+
+    - [ ] readdir
+
+      -ENOSYS
+
+    - [ ] open
+
+      0
+
+    - [ ] release
+
+      0
+
+    - [ ] read
+
+      -ENOSYS
+
+    - [ ] write
+
+      -ENOSYS
+
+    - [ ] truncate
+
+      -ENOSYS
 
   - [ ] сменить использовать f == NULL на явный флаг (атомик?) для простоты использования
 

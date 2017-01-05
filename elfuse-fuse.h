@@ -118,8 +118,11 @@ struct elfuse_results_truncate {
 
 /* A unified data exchange struct. */
 struct elfuse_call_state {
-    enum elfuse_state {
+    enum elfuse_request_state {
+        /* Nothing is waiting */
         WAITING_NONE,
+
+        /* Waiting for syscalls to be handled by Elisp */
         WAITING_CREATE,
         WAITING_RENAME,
         WAITING_GETATTR,
@@ -129,7 +132,12 @@ struct elfuse_call_state {
         WAITING_READ,
         WAITING_WRITE,
         WAITING_TRUNCATE,
-    } state;
+    } request_state;
+
+    enum elfuse_response_state {
+        RESPONSE_SUCCESS,
+        RESPONSE_UNDEFINED
+    } response_state;
 
     union args {
         struct elfuse_args_create create;

@@ -100,15 +100,15 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     return nil;
 }
 
-static void elfuse_handle_create(emacs_env *env, const char *path);
-static void elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath);
-static void elfuse_handle_readdir(emacs_env *env, const char *path);
-static void elfuse_handle_getattr(emacs_env *env, const char *path);
-static void elfuse_handle_open(emacs_env *env, const char *path);
-static void elfuse_handle_release(emacs_env *env, const char *path);
-static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
-static void elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
-static void elfuse_handle_truncate(emacs_env *env, const char *path, size_t size);
+static int elfuse_handle_create(emacs_env *env, const char *path);
+static int elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath);
+static int elfuse_handle_readdir(emacs_env *env, const char *path);
+static int elfuse_handle_getattr(emacs_env *env, const char *path);
+static int elfuse_handle_open(emacs_env *env, const char *path);
+static int elfuse_handle_release(emacs_env *env, const char *path);
+static int elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
+static int elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
+static int elfuse_handle_truncate(emacs_env *env, const char *path, size_t size);
 
 static emacs_value
 Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
@@ -123,7 +123,7 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
     if (pthread_mutex_trylock(&elfuse_mutex) != 0)
         return t;
 
-    switch (elfuse_call.state) {
+    switch (elfuse_call.request_state) {
     case WAITING_CREATE:
         elfuse_handle_create(env, elfuse_call.args.create.path);
         break;
@@ -165,7 +165,7 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
     return t;
 }
 
-static void
+static int
 elfuse_handle_create(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling CREATE (path=%s).\n", path);
@@ -178,9 +178,11 @@ elfuse_handle_create(emacs_env *env, const char *path)
     int res_code = env->extract_integer(env, Ires_code);
     fprintf(stderr, "CREATE result = %d\n", res_code);
     elfuse_call.results.create.code = res_code >= 0 ? CREATE_DONE : CREATE_FAIL;
+
+    return RESPONSE_SUCCESS;
 }
 
-static void
+static int
 elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
 {
     fprintf(stderr, "Handling RENAME (oldpath=%s, newpath=%s).\n", oldpath, newpath);
@@ -194,9 +196,11 @@ elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
     int res_code = env->extract_integer(env, Ires_code);
     fprintf(stderr, "RENAME result = %d\n", res_code);
     elfuse_call.results.rename.code = res_code >= 0 ? RENAME_DONE : RENAME_UNKNOWN;
+
+    return RESPONSE_SUCCESS;
 }
 
-static void
+static int
 elfuse_handle_readdir(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling READDIR (path=%s).\n", path);
@@ -220,9 +224,10 @@ elfuse_handle_readdir(emacs_env *env, const char *path)
         elfuse_call.results.readdir.files[i] = dirpath;
     }
 
+    return RESPONSE_SUCCESS;
 }
 
-static void
+static int
 elfuse_handle_getattr(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
@@ -245,9 +250,10 @@ elfuse_handle_getattr(emacs_env *env, const char *path)
         elfuse_call.results.getattr.code = GETATTR_UNKNOWN;
     }
 
+    return RESPONSE_SUCCESS;
 }
 
-static void
+static int
 elfuse_handle_open(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling OPEN (path=%s).\n", path);
@@ -263,9 +269,11 @@ elfuse_handle_open(emacs_env *env, const char *path)
     } else {
         elfuse_call.results.open.code = OPEN_UNKNOWN;
     }
+
+    return RESPONSE_SUCCESS;
 }
 
-static void
+static int
 elfuse_handle_release(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling RELEASE (path=%s).\n", path);
@@ -281,9 +289,11 @@ elfuse_handle_release(emacs_env *env, const char *path)
     } else {
         elfuse_call.results.release.code = RELEASE_UNKNOWN;
     }
+
+    return RESPONSE_SUCCESS;
 }
 
-static void
+static int
 elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
 {
     fprintf(stderr, "Handling READ (path=%s).\n", path);
@@ -311,9 +321,11 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
             fprintf(stderr, "Handling READ: %s(len=%ld)\n", elfuse_call.results.read.data, buffer_length);
         }
     }
+
+    return RESPONSE_SUCCESS;
 }
 
-static void
+static int
 elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset)
 {
     fprintf(stderr, "Handling WRITE (path=%s).\n", path);
@@ -331,9 +343,11 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
     } else {
         elfuse_call.results.write.size  = res_code;
     }
+
+    return RESPONSE_SUCCESS;
 }
 
-static void
+static int
 elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
 {
     fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
@@ -349,6 +363,8 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
     } else {
         elfuse_call.results.truncate.code  = TRUNCATE_UNKNOWN;
     }
+
+    return RESPONSE_SUCCESS;
 }
 
 
