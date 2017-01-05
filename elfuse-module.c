@@ -170,11 +170,12 @@ elfuse_handle_create(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling CREATE (path=%s).\n", path);
 
+    emacs_value Qcreate = env->intern(env, "elfuse--create-callback");
+
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
     };
-    emacs_value Qrename = env->intern(env, "elfuse--create-callback");
-    emacs_value Ires_code = env->funcall(env, Qrename, sizeof(args)/sizeof(args[0]), args);
+    emacs_value Ires_code = env->funcall(env, Qcreate, sizeof(args)/sizeof(args[0]), args);
     int res_code = env->extract_integer(env, Ires_code);
     fprintf(stderr, "CREATE result = %d\n", res_code);
     elfuse_call.results.create.code = res_code >= 0 ? CREATE_DONE : CREATE_FAIL;
@@ -187,11 +188,12 @@ elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
 {
     fprintf(stderr, "Handling RENAME (oldpath=%s, newpath=%s).\n", oldpath, newpath);
 
+    emacs_value Qrename = env->intern(env, "elfuse--rename-callback");
+
     emacs_value args[] = {
         env->make_string(env, oldpath, strlen(oldpath)),
         env->make_string(env, newpath, strlen(newpath)),
     };
-    emacs_value Qrename = env->intern(env, "elfuse--rename-callback");
     emacs_value Ires_code = env->funcall(env, Qrename, sizeof(args)/sizeof(args[0]), args);
     int res_code = env->extract_integer(env, Ires_code);
     fprintf(stderr, "RENAME result = %d\n", res_code);
@@ -205,10 +207,11 @@ elfuse_handle_readdir(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling READDIR (path=%s).\n", path);
 
+    emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
+
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
     };
-    emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
     emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
 
     elfuse_call.results.readdir.files_size = env->vec_size(env, file_vector);
@@ -232,11 +235,11 @@ elfuse_handle_getattr(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
 
+    emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
+
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
     };
-    emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
-
     emacs_value getattr_result_vector = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
     emacs_value Qfiletype = env->vec_get(env, getattr_result_vector, 0);
     emacs_value file_size = env->vec_get(env, getattr_result_vector, 1);
@@ -258,10 +261,11 @@ elfuse_handle_open(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling OPEN (path=%s).\n", path);
 
+    emacs_value Qopen = env->intern(env, "elfuse--open-callback");
+
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
     };
-    emacs_value Qopen = env->intern(env, "elfuse--open-callback");
     emacs_value Qfound = env->funcall(env, Qopen, sizeof(args)/sizeof(args[0]), args);
 
     if (env->eq(env, Qfound, t)) {
@@ -278,10 +282,11 @@ elfuse_handle_release(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling RELEASE (path=%s).\n", path);
 
+    emacs_value Qrelease = env->intern(env, "elfuse--release-callback");
+
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
     };
-    emacs_value Qrelease = env->intern(env, "elfuse--release-callback");
     emacs_value Qfound = env->funcall(env, Qrelease, sizeof(args)/sizeof(args[0]), args);
 
     if (env->eq(env, Qfound, t)) {
@@ -298,12 +303,13 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
 {
     fprintf(stderr, "Handling READ (path=%s).\n", path);
 
+    emacs_value Qread = env->intern(env, "elfuse--read-callback");
+
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
         env->make_integer(env, offset),
         env->make_integer(env, size),
     };
-    emacs_value Qread = env->intern(env, "elfuse--read-callback");
     emacs_value Sdata = env->funcall(env, Qread, sizeof(args)/sizeof(args[0]), args);
 
     if (env->eq(env, Sdata, nil)) {
@@ -330,12 +336,13 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
 {
     fprintf(stderr, "Handling WRITE (path=%s).\n", path);
 
+    emacs_value Qwrite = env->intern(env, "elfuse--write-callback");
+
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
         env->make_string(env, buf, size),
         env->make_integer(env, offset),
     };
-    emacs_value Qwrite = env->intern(env, "elfuse--write-callback");
     emacs_value Ires_code = env->funcall(env, Qwrite, sizeof(args)/sizeof(args[0]), args);
     int res_code = env->extract_integer(env, Ires_code);
     if (res_code >= 0) {
@@ -352,11 +359,12 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
 {
     fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
 
+    emacs_value Qtruncate = env->intern(env, "elfuse--truncate-callback");
+
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
         env->make_integer(env, size),
     };
-    emacs_value Qtruncate = env->intern(env, "elfuse--truncate-callback");
     emacs_value Ires_code = env->funcall(env, Qtruncate, sizeof(args)/sizeof(args[0]), args);
     if (env->extract_integer(env, Ires_code) >= 0) {
         elfuse_call.results.truncate.code  = TRUNCATE_DONE;
