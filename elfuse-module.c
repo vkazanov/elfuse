@@ -125,35 +125,35 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
 
     switch (elfuse_call.request_state) {
     case WAITING_CREATE:
-        elfuse_handle_create(env, elfuse_call.args.create.path);
+        elfuse_call.response_state = elfuse_handle_create(env, elfuse_call.args.create.path);
         break;
     case WAITING_RENAME:
-        elfuse_handle_rename(env, elfuse_call.args.rename.oldpath, elfuse_call.args.rename.newpath);
+        elfuse_call.response_state = elfuse_handle_rename(env, elfuse_call.args.rename.oldpath, elfuse_call.args.rename.newpath);
         break;
     case WAITING_READDIR:
-        elfuse_handle_readdir(env, elfuse_call.args.readdir.path);
+        elfuse_call.response_state = elfuse_handle_readdir(env, elfuse_call.args.readdir.path);
         break;
     case WAITING_GETATTR:
-        elfuse_handle_getattr(env, elfuse_call.args.getattr.path);
+        elfuse_call.response_state = elfuse_handle_getattr(env, elfuse_call.args.getattr.path);
         break;
     case WAITING_OPEN:
-        elfuse_handle_open(env, elfuse_call.args.open.path);
+        elfuse_call.response_state = elfuse_handle_open(env, elfuse_call.args.open.path);
         break;
     case WAITING_RELEASE:
-        elfuse_handle_release(env, elfuse_call.args.open.path);
+        elfuse_call.response_state = elfuse_handle_release(env, elfuse_call.args.open.path);
         break;
     case WAITING_READ:
-        elfuse_handle_read(
+        elfuse_call.response_state = elfuse_handle_read(
             env, elfuse_call.args.read.path, elfuse_call.args.read.offset, elfuse_call.args.read.size
         );
         break;
     case WAITING_WRITE:
-        elfuse_handle_write(
+        elfuse_call.response_state = elfuse_handle_write(
             env, elfuse_call.args.write.path, elfuse_call.args.write.buf, elfuse_call.args.write.size, elfuse_call.args.write.offset
         );
         break;
     case WAITING_TRUNCATE:
-        elfuse_handle_truncate(env, elfuse_call.args.truncate.path, elfuse_call.args.truncate.size);
+        elfuse_call.response_state = elfuse_handle_truncate(env, elfuse_call.args.truncate.path, elfuse_call.args.truncate.size);
         break;
     case WAITING_NONE:
         break;
@@ -171,6 +171,9 @@ elfuse_handle_create(emacs_env *env, const char *path)
     fprintf(stderr, "Handling CREATE (path=%s).\n", path);
 
     emacs_value Qcreate = env->intern(env, "elfuse--create-callback");
+    if (!env->is_not_nil(env, Qcreate)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
@@ -189,6 +192,9 @@ elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
     fprintf(stderr, "Handling RENAME (oldpath=%s, newpath=%s).\n", oldpath, newpath);
 
     emacs_value Qrename = env->intern(env, "elfuse--rename-callback");
+    if (!env->is_not_nil(env, Qrename)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, oldpath, strlen(oldpath)),
@@ -208,6 +214,9 @@ elfuse_handle_readdir(emacs_env *env, const char *path)
     fprintf(stderr, "Handling READDIR (path=%s).\n", path);
 
     emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
+    if (!env->is_not_nil(env, Qreaddir)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
@@ -236,6 +245,9 @@ elfuse_handle_getattr(emacs_env *env, const char *path)
     fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
 
     emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
+    if (!env->is_not_nil(env, Qgetattr)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
@@ -262,6 +274,9 @@ elfuse_handle_open(emacs_env *env, const char *path)
     fprintf(stderr, "Handling OPEN (path=%s).\n", path);
 
     emacs_value Qopen = env->intern(env, "elfuse--open-callback");
+    if (!env->is_not_nil(env, Qopen)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
@@ -283,6 +298,9 @@ elfuse_handle_release(emacs_env *env, const char *path)
     fprintf(stderr, "Handling RELEASE (path=%s).\n", path);
 
     emacs_value Qrelease = env->intern(env, "elfuse--release-callback");
+    if (!env->is_not_nil(env, Qrelease)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
@@ -304,6 +322,9 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
     fprintf(stderr, "Handling READ (path=%s).\n", path);
 
     emacs_value Qread = env->intern(env, "elfuse--read-callback");
+    if (!env->is_not_nil(env, Qread)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
@@ -337,6 +358,9 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
     fprintf(stderr, "Handling WRITE (path=%s).\n", path);
 
     emacs_value Qwrite = env->intern(env, "elfuse--write-callback");
+    if (!env->is_not_nil(env, Qwrite)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
@@ -360,11 +384,15 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
     fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
 
     emacs_value Qtruncate = env->intern(env, "elfuse--truncate-callback");
+    if (!env->is_not_nil(env, Qtruncate)) {
+        return RESPONSE_UNDEFINED;
+    }
 
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
         env->make_integer(env, size),
     };
+
     emacs_value Ires_code = env->funcall(env, Qtruncate, sizeof(args)/sizeof(args[0]), args);
     if (env->extract_integer(env, Ires_code) >= 0) {
         elfuse_call.results.truncate.code  = TRUNCATE_DONE;

@@ -110,6 +110,10 @@
       If the operation is not defined, they return -ENOSYS, with the exception of fuse_fs_open,
       fuse_fs_release, fuse_fs_opendir, fuse_fs_releasedir and fuse_fs_statfs, which return 0.
 
+    - [X] Добавить сущность результата вызова функции, чтобы можно было рапортовать адекватно
+
+    - [ ] коды возврата точно правильные? или это только fuse?
+
     - [ ] create
 
       -ENOSYS
