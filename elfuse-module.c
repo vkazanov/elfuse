@@ -62,6 +62,13 @@ provide (emacs_env *env, const char *feature)
     env->funcall (env, Qprovide, 1, args);
 }
 
+static bool
+fboundp (emacs_env *env, emacs_value Sfun) {
+    emacs_value Qfboundp = env->intern (env, "fboundp");
+    emacs_value args[] = { Sfun };
+    return env->is_not_nil(env, env->funcall (env, Qfboundp, 1, args));
+}
+
 static emacs_value
 Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
@@ -214,7 +221,7 @@ elfuse_handle_readdir(emacs_env *env, const char *path)
     fprintf(stderr, "Handling READDIR (path=%s).\n", path);
 
     emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
-    if (!env->is_not_nil(env, Qreaddir)) {
+    if (!fboundp(env, Qreaddir)) {
         return RESPONSE_UNDEFINED;
     }
 
@@ -245,7 +252,7 @@ elfuse_handle_getattr(emacs_env *env, const char *path)
     fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
 
     emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
-    if (!env->is_not_nil(env, Qgetattr)) {
+    if (!fboundp(env, Qgetattr)) {
         return RESPONSE_UNDEFINED;
     }
 

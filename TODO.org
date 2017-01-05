@@ -112,21 +112,21 @@
 
     - [X] Добавить сущность результата вызова функции, чтобы можно было рапортовать адекватно
 
-    - [ ] коды возврата точно правильные? или это только fuse?
+    - [X] коды возврата точно правильные? или это только fuse?
+
+    - [X] readdir
+
+      -ENOSYS
+
+    - [X] getattr
+
+      -ENOSYS
 
     - [ ] create
 
       -ENOSYS
 
     - [ ] rename
-
-      -ENOSYS
-
-    - [ ] getattr
-
-      -ENOSYS
-
-    - [ ] readdir
 
       -ENOSYS
 
@@ -149,6 +149,9 @@
     - [ ] truncate
 
       -ENOSYS
+
+  - [ ] similar to elfuse-module, extract response handling code into clean function, not aware of
+    various lock-related stuff and error handling
 
   - [ ] сменить использовать f == NULL на явный флаг (атомик?) для простоты использования
 

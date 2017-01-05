@@ -99,19 +99,26 @@ elfuse_getattr(const char *path, struct stat *stbuf)
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    memset(stbuf, 0, sizeof(struct stat));
-    if (elfuse_call.results.getattr.code == GETATTR_FILE) {
-        fprintf(stderr, "GETATTR received results (file %s)\n", path);
-        stbuf->st_mode = S_IFREG | 0666;
-        stbuf->st_nlink = 1;
-        stbuf->st_size = elfuse_call.results.getattr.file_size;
-    } else if (elfuse_call.results.getattr.code == GETATTR_DIR) {
-        fprintf(stderr, "GETATTR received results (dir %s)\n", path);
-        stbuf->st_mode = S_IFDIR | 0755;
-        stbuf->st_nlink = 2;
+
+    /* Got the results, see if everything's fine */
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "GETATTR callback undefined\n");
+        res = -ENOSYS;
     } else {
-        fprintf(stderr, "GETATTR received results (unknown %s)\n", path);
-        res = -ENOENT;
+        memset(stbuf, 0, sizeof(struct stat));
+        if (elfuse_call.results.getattr.code == GETATTR_FILE) {
+            fprintf(stderr, "GETATTR received results (file %s)\n", path);
+            stbuf->st_mode = S_IFREG | 0666;
+            stbuf->st_nlink = 1;
+            stbuf->st_size = elfuse_call.results.getattr.file_size;
+        } else if (elfuse_call.results.getattr.code == GETATTR_DIR) {
+            fprintf(stderr, "GETATTR received results (dir %s)\n", path);
+            stbuf->st_mode = S_IFDIR | 0755;
+            stbuf->st_nlink = 2;
+        } else {
+            fprintf(stderr, "GETATTR received results (unknown %s)\n", path);
+            res = -ENOENT;
+        }
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -127,10 +134,7 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     (void) offset;
     (void) fi;
 
-    /* TODO: this check should happen in a callback */
-    if (strcmp(path, "/") != 0) {
-        return -ENOENT;
-    }
+    int res = 0;
 
     pthread_mutex_lock(&elfuse_mutex);
 
@@ -143,17 +147,25 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     /* Wait for results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    fprintf(stderr, "READDIR received results\n");
-    for (size_t i = 0; i < elfuse_call.results.readdir.files_size; i++) {
-        filler(buf, elfuse_call.results.readdir.files[i], NULL, 0);
+    /* Got the results, see if everything's fine */
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "READDIR callback undefined\n");
+        res = -ENOSYS;
+    } else {
+        fprintf(stderr, "READDIR received results\n");
+        for (size_t i = 0; i < elfuse_call.results.readdir.files_size; i++) {
+            filler(buf, elfuse_call.results.readdir.files[i], NULL, 0);
+        }
+
+        free(elfuse_call.results.readdir.files);
+        res = 0;
     }
 
-    free(elfuse_call.results.readdir.files);
 
     elfuse_call.request_state = WAITING_NONE;
     pthread_mutex_unlock(&elfuse_mutex);
 
-    return 0;
+    return res;
 }
 
 static int
