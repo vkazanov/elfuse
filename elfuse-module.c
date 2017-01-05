@@ -108,7 +108,7 @@ static void elfuse_handle_open(emacs_env *env, const char *path);
 static void elfuse_handle_release(emacs_env *env, const char *path);
 static void elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
 static void elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
-static void elfuse_handle_truncate(emacs_env *env, const char *path, off_t size);
+static void elfuse_handle_truncate(emacs_env *env, const char *path, size_t size);
 
 static emacs_value
 Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
@@ -334,7 +334,7 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
 }
 
 static void
-elfuse_handle_truncate(emacs_env *env, const char *path, off_t size)
+elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
 {
     fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
 
