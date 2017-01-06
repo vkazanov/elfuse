@@ -122,11 +122,23 @@
 
       -ENOSYS
 
-    - [ ] create
+    - [X] create
 
       -ENOSYS
 
-    - [ ] rename
+    - [X] rename
+
+      -ENOSYS
+
+    - [X] read
+
+      -ENOSYS
+
+    - [X] write
+
+      -ENOSYS
+
+    - [X] truncate
 
       -ENOSYS
 
@@ -137,18 +149,6 @@
     - [ ] release
 
       0
-
-    - [ ] read
-
-      -ENOSYS
-
-    - [ ] write
-
-      -ENOSYS
-
-    - [ ] truncate
-
-      -ENOSYS
 
   - [ ] проверку коллбэков со стороны емакса можно выделить в отдельную функцию
 

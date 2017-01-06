@@ -25,6 +25,7 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
     (void) mode;
     (void) fi;
+    int res = 0;
 
     pthread_mutex_lock(&elfuse_mutex);
 
@@ -37,13 +38,18 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    int res = 0;
-    if (elfuse_call.results.create.code == CREATE_DONE) {
-        fprintf(stderr, "CREATE received results (code=DONE)\n");
-        /* Just return zero (success) */
+    /* Got the results, see if everything's fine */
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "CREATE callback undefined\n");
+        res = -ENOSYS;
     } else {
-        fprintf(stderr, "CREATE received results (code=FAIL)\n");
-        res = -ENOENT;
+        if (elfuse_call.results.create.code == CREATE_DONE) {
+            fprintf(stderr, "CREATE received results (code=DONE)\n");
+            res = 0;
+        } else {
+            fprintf(stderr, "CREATE received results (code=FAIL)\n");
+            res = -ENOENT;
+        }
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -55,6 +61,7 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 static int
 elfuse_rename(const char *oldpath, const char *newpath)
 {
+    int res = 0;
 
     pthread_mutex_lock(&elfuse_mutex);
 
@@ -68,13 +75,17 @@ elfuse_rename(const char *oldpath, const char *newpath)
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    int res = 0;
-    if (elfuse_call.results.rename.code == RENAME_DONE) {
-        fprintf(stderr, "RENAME received results (code=DONE)\n");
-        /* Just return zero (success) */
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "RENAME callback undefined\n");
+        res = -ENOSYS;
     } else {
-        fprintf(stderr, "RENAME received results (code=UNKNOWN)\n");
-        res = -ENOENT;
+        if (elfuse_call.results.rename.code == RENAME_DONE) {
+            fprintf(stderr, "RENAME received results (code=DONE)\n");
+            res = 0;
+        } else {
+            fprintf(stderr, "RENAME received results (code=UNKNOWN)\n");
+            res = -ENOENT;
+        }
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -98,7 +109,6 @@ elfuse_getattr(const char *path, struct stat *stbuf)
 
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
-
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
@@ -171,6 +181,9 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 static int
 elfuse_open(const char *path, struct fuse_file_info *fi)
 {
+    int res = 0;
+
+    /* TODO: should be handled on the Emacs side of things */
     if ((fi->flags & 3) != O_RDONLY)
         return -EACCES;
 
@@ -184,8 +197,6 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
 
     /* Wait for results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
-
-    int res = 0;
 
     fprintf(stderr, "OPEN received results (%d)\n", elfuse_call.results.open.code == OPEN_FOUND);
 
@@ -204,6 +215,9 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
 static int
 elfuse_release(const char *path, struct fuse_file_info *fi)
 {
+    int res = 0;
+
+    /* TODO: should be handled on the Emacs side of things */
     if ((fi->flags & 3) != O_RDONLY)
         return -EACCES;
 
@@ -217,8 +231,6 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
 
     /* Wait for results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
-
-    int res = 0;
 
     fprintf(stderr, "RELEASE received results (%d)\n", elfuse_call.results.release.code == RELEASE_FOUND);
 
@@ -240,6 +252,8 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 {
     (void) fi;
 
+    int res = 0;
+
     pthread_mutex_lock(&elfuse_mutex);
 
     /* Function to call */
@@ -253,16 +267,21 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    size_t res;
-    if (elfuse_call.results.read.bytes_read >= 0) {
-        fprintf(stderr, "READ received results %s(%d)\n", elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
-        memcpy(buf, elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
-        free(elfuse_call.results.read.data);
-        res = elfuse_call.results.read.bytes_read;
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "READ callback undefined\n");
+        res = -ENOSYS;
     } else {
-        fprintf(stderr, "READ did not receive results (%d)\n", elfuse_call.results.read.bytes_read);
-        res = -ENOENT;
+        if (elfuse_call.results.read.bytes_read >= 0) {
+            fprintf(stderr, "READ received results %s(%d)\n", elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
+            memcpy(buf, elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
+            free(elfuse_call.results.read.data);
+            res = elfuse_call.results.read.bytes_read;
+        } else {
+            fprintf(stderr, "READ did not receive results (%d)\n", elfuse_call.results.read.bytes_read);
+            res = -ENOENT;
+        }
     }
+
 
     elfuse_call.request_state = WAITING_NONE;
     pthread_mutex_unlock(&elfuse_mutex);
@@ -275,6 +294,9 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
                         struct fuse_file_info *fi)
 {
     (void) fi;
+
+    int res = 0;
+
     pthread_mutex_lock(&elfuse_mutex);
 
     /* Function to call */
@@ -289,13 +311,17 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    size_t res;
-    if (elfuse_call.results.write.size >= 0) {
-        fprintf(stderr, "WRITE received results %d\n", elfuse_call.results.write.size);
-        res = elfuse_call.results.write.size;
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "WRITE callback undefined\n");
+        res = -ENOSYS;
     } else {
-        fprintf(stderr, "WRITE did not receive results (%d)\n", elfuse_call.results.write.size);
-        res = -ENOENT;
+        if (elfuse_call.results.write.size >= 0) {
+            fprintf(stderr, "WRITE received results %d\n", elfuse_call.results.write.size);
+            res = elfuse_call.results.write.size;
+        } else {
+            fprintf(stderr, "WRITE did not receive results (%d)\n", elfuse_call.results.write.size);
+            res = -ENOENT;
+        }
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -307,6 +333,8 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 static int
 elfuse_truncate(const char *path, off_t size)
 {
+    size_t res = 0;
+
     pthread_mutex_lock(&elfuse_mutex);
 
     /* Function to call */
@@ -319,13 +347,17 @@ elfuse_truncate(const char *path, off_t size)
     /* Wait for the funcall results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    size_t res;
-    if (elfuse_call.results.truncate.code == TRUNCATE_DONE) {
-        fprintf(stderr, "TRUNCATE received results %d\n", elfuse_call.results.truncate.code);
-        res = 0;
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "TRUNCATE callback undefined\n");
+        res = -ENOSYS;
     } else {
-        fprintf(stderr, "TRUNCATE did not receive results (%d)\n", elfuse_call.results.truncate.code);
-        res = -ENOENT;
+        if (elfuse_call.results.truncate.code == TRUNCATE_DONE) {
+            fprintf(stderr, "TRUNCATE received results %d\n", elfuse_call.results.truncate.code);
+            res = 0;
+        } else {
+            fprintf(stderr, "TRUNCATE did not receive results (%d)\n", elfuse_call.results.truncate.code);
+            res = -ENOENT;
+        }
     }
 
     elfuse_call.request_state = WAITING_NONE;
