@@ -150,6 +150,8 @@
 
       -ENOSYS
 
+  - [ ] проверку коллбэков со стороны емакса можно выделить в отдельную функцию
+
   - [ ] similar to elfuse-module, extract response handling code into clean function, not aware of
     various lock-related stuff and error handling
 

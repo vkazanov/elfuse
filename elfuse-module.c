@@ -178,7 +178,7 @@ elfuse_handle_create(emacs_env *env, const char *path)
     fprintf(stderr, "Handling CREATE (path=%s).\n", path);
 
     emacs_value Qcreate = env->intern(env, "elfuse--create-callback");
-    if (!env->is_not_nil(env, Qcreate)) {
+    if (!fboundp(env, Qcreate)) {
         return RESPONSE_UNDEFINED;
     }
 
@@ -199,7 +199,7 @@ elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
     fprintf(stderr, "Handling RENAME (oldpath=%s, newpath=%s).\n", oldpath, newpath);
 
     emacs_value Qrename = env->intern(env, "elfuse--rename-callback");
-    if (!env->is_not_nil(env, Qrename)) {
+    if (!fboundp(env, Qrename)) {
         return RESPONSE_UNDEFINED;
     }
 
@@ -281,7 +281,7 @@ elfuse_handle_open(emacs_env *env, const char *path)
     fprintf(stderr, "Handling OPEN (path=%s).\n", path);
 
     emacs_value Qopen = env->intern(env, "elfuse--open-callback");
-    if (!env->is_not_nil(env, Qopen)) {
+    if (!fboundp(env, Qopen)) {
         return RESPONSE_UNDEFINED;
     }
 
@@ -305,7 +305,7 @@ elfuse_handle_release(emacs_env *env, const char *path)
     fprintf(stderr, "Handling RELEASE (path=%s).\n", path);
 
     emacs_value Qrelease = env->intern(env, "elfuse--release-callback");
-    if (!env->is_not_nil(env, Qrelease)) {
+    if (!fboundp(env, Qrelease)) {
         return RESPONSE_UNDEFINED;
     }
 
@@ -329,7 +329,7 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
     fprintf(stderr, "Handling READ (path=%s).\n", path);
 
     emacs_value Qread = env->intern(env, "elfuse--read-callback");
-    if (!env->is_not_nil(env, Qread)) {
+    if (!fboundp(env, Qread)) {
         return RESPONSE_UNDEFINED;
     }
 
@@ -365,7 +365,7 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
     fprintf(stderr, "Handling WRITE (path=%s).\n", path);
 
     emacs_value Qwrite = env->intern(env, "elfuse--write-callback");
-    if (!env->is_not_nil(env, Qwrite)) {
+    if (!fboundp(env, Qwrite)) {
         return RESPONSE_UNDEFINED;
     }
 
@@ -391,7 +391,7 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
     fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
 
     emacs_value Qtruncate = env->intern(env, "elfuse--truncate-callback");
-    if (!env->is_not_nil(env, Qtruncate)) {
+    if (!fboundp(env, Qtruncate)) {
         return RESPONSE_UNDEFINED;
     }
 
