@@ -198,12 +198,17 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
     /* Wait for results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    fprintf(stderr, "OPEN received results (%d)\n", elfuse_call.results.open.code == OPEN_FOUND);
-
-    if (elfuse_call.results.open.code == OPEN_FOUND) {
-        res = 0;
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "OPEN callback undefined\n");
+        res = -ENOSYS;
     } else {
-        res = -ENOENT;
+        fprintf(stderr, "OPEN received results (%d)\n", elfuse_call.results.open.code == OPEN_FOUND);
+
+        if (elfuse_call.results.open.code == OPEN_FOUND) {
+            res = 0;
+        } else {
+            res = -EACCES;
+        }
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -232,12 +237,17 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
     /* Wait for results */
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
-    fprintf(stderr, "RELEASE received results (%d)\n", elfuse_call.results.release.code == RELEASE_FOUND);
-
-    if (elfuse_call.results.release.code == RELEASE_FOUND) {
-        res = 0;
+    if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "RELEASE callback undefined\n");
+        res = -ENOSYS;
     } else {
-        res = -ENOENT;
+        fprintf(stderr, "RELEASE received results (%d)\n", elfuse_call.results.release.code == RELEASE_FOUND);
+
+        if (elfuse_call.results.release.code == RELEASE_FOUND) {
+            res = 0;
+        } else {
+            res = -EACCES;
+        }
     }
 
     elfuse_call.request_state = WAITING_NONE;

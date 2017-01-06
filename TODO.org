@@ -101,7 +101,7 @@
 
   - [X] start the testing instance from the Makefile
 
-  - [-] неопределенные коллбэки (должны отвечать стандартным кодом ошибки elfuse)
+  - [X] неопределенные коллбэки (должны отвечать стандартным кодом ошибки elfuse)
 
     - [X] новое состояние elfuse_state
 
@@ -142,11 +142,11 @@
 
       -ENOSYS
 
-    - [ ] open
+    - [X] open
 
       0
 
-    - [ ] release
+    - [X] release
 
       0
 
@@ -154,6 +154,14 @@
 
   - [ ] similar to elfuse-module, extract response handling code into clean function, not aware of
     various lock-related stuff and error handling
+
+  - [ ] в целом, что должны возвращать коллбеки?
+
+    -ENOSYS при неопределенных коллбеках
+
+    -EACCES при ошибке доступа
+
+    что еще? И где это смотреть?
 
   - [ ] сменить использовать f == NULL на явный флаг (атомик?) для простоты использования
 

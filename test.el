@@ -7,8 +7,8 @@
 (defun elfuse--rename-callback (oldpath newpath)
   (if (member oldpath '("/hello" "/other" "/etc")) 1 -1))
 
-;; (defun elfuse--readdir-callback (path)
-;;   ["." ".." "hello" "other" "etc"])
+(defun elfuse--readdir-callback (path)
+  ["." ".." "hello" "other" "etc"])
 
 (defun elfuse--getattr-callback (path)
   (cond
