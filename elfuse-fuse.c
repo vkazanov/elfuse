@@ -121,10 +121,12 @@ elfuse_getattr(const char *path, struct stat *stbuf)
             stbuf->st_mode = S_IFREG | 0666;
             stbuf->st_nlink = 1;
             stbuf->st_size = elfuse_call.results.getattr.file_size;
+            res = 0;
         } else if (elfuse_call.results.getattr.code == GETATTR_DIR) {
             fprintf(stderr, "GETATTR received results (dir %s)\n", path);
             stbuf->st_mode = S_IFDIR | 0755;
             stbuf->st_nlink = 2;
+            res = 0;
         } else {
             fprintf(stderr, "GETATTR received results (unknown %s)\n", path);
             res = -ENOENT;
@@ -292,7 +294,6 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
         }
     }
 
-
     elfuse_call.request_state = WAITING_NONE;
     pthread_mutex_unlock(&elfuse_mutex);
 
@@ -388,7 +389,7 @@ static struct fuse_operations elfuse_oper = {
     .truncate	= elfuse_truncate,
 };
 
-static struct fuse *f;
+static struct fuse *fuse;
 
 int
 elfuse_fuse_loop(char* mountpath)
@@ -406,20 +407,19 @@ elfuse_fuse_loop(char* mountpath)
     if (fuse_parse_cmdline(&args, &mountpoint, NULL, NULL) != -1 &&
         (ch = fuse_mount(mountpoint, &args)) != NULL) {
 
-        f = fuse_new(ch, &args, &elfuse_oper, sizeof(elfuse_oper), NULL);
-        if (f != NULL) {
+        fuse = fuse_new(ch, &args, &elfuse_oper, sizeof(elfuse_oper), NULL);
+        if (fuse != NULL) {
             fprintf(stderr, "start loop\n");
-            err = fuse_loop(f);
+            err = fuse_loop(fuse);
             fprintf(stderr, "stop loop\n");
-            fuse_destroy(f);
+            fuse_destroy(fuse);
         }
         fuse_unmount(mountpoint, ch);
     }
     fuse_opt_free_args(&args);
 
-    /* TODO: use an atomic boolean flag here? */
     pthread_mutex_lock(&elfuse_mutex);
-    f = NULL;
+    fuse = NULL;
     pthread_mutex_unlock(&elfuse_mutex);
 
     fprintf(stderr, "done with the loop\n");
@@ -431,19 +431,19 @@ void
 elfuse_stop_loop()
 {
     pthread_mutex_lock(&elfuse_mutex);
-    bool is_looping = f != NULL;
+    bool is_looping = fuse != NULL;
     if (!is_looping) {
         pthread_mutex_unlock(&elfuse_mutex);
         return;
     }
-    fuse_exit(f);
+    fuse_exit(fuse);
     pthread_mutex_unlock(&elfuse_mutex);
 
     while (is_looping) {
         sleep(1);
         fprintf(stderr, "not yet exited\n");
         pthread_mutex_lock(&elfuse_mutex);
-        is_looping = f != NULL;
+        is_looping = fuse != NULL;
         pthread_mutex_unlock(&elfuse_mutex);
     }
     fprintf(stderr, "exited\n");
