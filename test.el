@@ -59,11 +59,13 @@
 
 (elfuse--start "mount/")
 
-(let ((timer (run-at-time
+(defun elfuse--loop ()
+  (let ((timer (run-at-time
               nil
               0.01
               (lambda () (let ((check-p (elfuse--check-callbacks)))
                       (unless check-p
-                        (cancel-timer timer))))))) )
+                        (cancel-timer timer)))))))))
+(elfuse--loop)
 
 ;; (elfuse--stop)

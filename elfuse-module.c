@@ -21,7 +21,7 @@ static void *
 elfuse_fuse_function (void *arg)
 {
     elfuse_fuse_loop(arg);
-    fprintf(stderr, "thread done");
+    fprintf(stderr, "Elfuse thread done\n");
     return NULL;
 }
 

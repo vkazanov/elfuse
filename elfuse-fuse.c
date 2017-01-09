@@ -409,9 +409,9 @@ elfuse_fuse_loop(char* mountpath)
 
         fuse = fuse_new(ch, &args, &elfuse_oper, sizeof(elfuse_oper), NULL);
         if (fuse != NULL) {
-            fprintf(stderr, "start loop\n");
+            fprintf(stderr, "Start the Elfuse loop\n");
             err = fuse_loop(fuse);
-            fprintf(stderr, "stop loop\n");
+            fprintf(stderr, "Stop the Elfuse loop\n");
             fuse_destroy(fuse);
         }
         fuse_unmount(mountpoint, ch);
@@ -421,8 +421,6 @@ elfuse_fuse_loop(char* mountpath)
     pthread_mutex_lock(&elfuse_mutex);
     fuse = NULL;
     pthread_mutex_unlock(&elfuse_mutex);
-
-    fprintf(stderr, "done with the loop\n");
 
     return err ? 1 : 0;
 }
@@ -441,10 +439,9 @@ elfuse_stop_loop()
 
     while (is_looping) {
         sleep(1);
-        fprintf(stderr, "not yet exited\n");
         pthread_mutex_lock(&elfuse_mutex);
         is_looping = fuse != NULL;
         pthread_mutex_unlock(&elfuse_mutex);
     }
-    fprintf(stderr, "exited\n");
+    fprintf(stderr, "Elfuse unmounted\n");
 }
