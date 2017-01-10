@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <signal.h>
 #include <unistd.h>
 
 #include "emacs-module.h"
@@ -100,8 +101,15 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     (void)env; (void)nargs; (void)args; (void)data;
 
     if (elfuse_is_started) {
-        elfuse_stop_loop();
-        elfuse_is_started = false;
+        if (pthread_cancel(fuse_thread) != 0) {
+            fprintf(stderr, "Failed to cancel the FUSE thread\n");
+        }
+        if (pthread_join(fuse_thread, NULL) != 0) {
+            fprintf(stderr, "Failed to join the FUSE thread\n");
+        } else {
+            elfuse_is_started = false;
+        }
+        fprintf(stderr, "FUSE thread cancelled\n");
         return t;
     }
     return nil;
