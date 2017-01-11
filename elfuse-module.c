@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "emacs-module.h"
 #include "elfuse-fuse.h"
@@ -21,6 +22,7 @@ static emacs_value t;
 static void *
 elfuse_fuse_function (void *arg)
 {
+    fprintf(stderr, "Elfuse thread starting\n");
     elfuse_fuse_loop(arg);
     fprintf(stderr, "Elfuse thread done\n");
     return NULL;
@@ -76,7 +78,7 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     (void)nargs; (void)data;
 
     if (!elfuse_is_started) {
-
+        fprintf(stderr, "Trying to start the FUSE thread\n");
         emacs_value Qpath = args[0];
 
         ptrdiff_t buffer_length;
@@ -84,7 +86,8 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
         char path[buffer_length];
         env->copy_string_contents(env, Qpath, path, &buffer_length);
 
-        if (pthread_create(&fuse_thread, NULL, elfuse_fuse_function, path) == 0) {
+        fprintf(stderr, "Creating the FUSE thread\n");
+        if (pthread_create(&fuse_thread, NULL, elfuse_fuse_function, strdup(path)) == 0) {
             elfuse_is_started = true;
             message(env, "FUSE thread mounted on %s", path);
             return t;
@@ -101,13 +104,14 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     (void)env; (void)nargs; (void)args; (void)data;
 
     if (elfuse_is_started) {
+        elfuse_is_started = false;
         if (pthread_cancel(fuse_thread) != 0) {
             fprintf(stderr, "Failed to cancel the FUSE thread\n");
+            return nil;
         }
         if (pthread_join(fuse_thread, NULL) != 0) {
             fprintf(stderr, "Failed to join the FUSE thread\n");
-        } else {
-            elfuse_is_started = false;
+            return nil;
         }
         fprintf(stderr, "FUSE thread cancelled\n");
         return t;

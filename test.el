@@ -57,15 +57,17 @@
    ((equal path "/etc") 0)
    (t -1)))
 
-(elfuse--start "mount/")
 
 (defun elfuse--loop ()
   (let ((timer (run-at-time
-              nil
-              0.01
-              (lambda () (let ((check-p (elfuse--check-callbacks)))
-                      (unless check-p
-                        (cancel-timer timer)))))))))
-(elfuse--loop)
+                nil
+                0.01
+                (lambda () 
+		  (unless (elfuse--check-callbacks)
+		    (cancel-timer timer))))))))
 
+(elfuse--start "mount/")
+(elfuse--loop)
 ;; (elfuse--stop)
+;; (elfuse--start "mount/")
+;; (elfuse--loop)

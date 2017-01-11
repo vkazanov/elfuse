@@ -393,21 +393,16 @@ static struct fuse_operations elfuse_oper = {
 static struct fuse *fuse;
 static struct fuse_chan *ch;
 
-static void elfuse_cleanup_args(void *args) {
-    fprintf(stderr, "cleanup args\n");
-    fuse_opt_free_args(args);
-}
-
-static void elfuse_cleanup_mount(void *arg) {
+static void elfuse_cleanup_mount(void *mountpoint) {
     fprintf(stderr, "cleanup mount\n");
-    fuse_unmount(arg, ch);
+    fuse_unmount(mountpoint, NULL);
+    free(mountpoint);
 }
 
-static void elfuse_cleanup_fuse(void *arg) {
-    (void) arg;
-
+static void elfuse_cleanup_fuse(void *buf) {
     fprintf(stderr, "cleanup fuse\n");
     fuse_destroy(fuse);
+    free(buf);
 }
 
 int
@@ -424,28 +419,41 @@ elfuse_fuse_loop(char* mountpath)
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     char *mountpoint;
     int err = -1;
-    pthread_cleanup_push(elfuse_cleanup_args, &args);
 
-    if (fuse_parse_cmdline(&args, &mountpoint, NULL, NULL) != -1 &&
-        (ch = fuse_mount(mountpoint, &args)) != NULL) {
+    fprintf(stderr, "Parsing the command line\n");
+    if (fuse_parse_cmdline(&args, &mountpoint, NULL, NULL) == -1) {
+        /* TODO: Fail here */
+        fprintf(stderr, "Failed parsing the command line\n");
+        free(mountpath);
+        free(mountpoint);
+        pthread_exit(NULL);
+    }
+
+    free(mountpath);
+
+    fprintf(stderr, "Mounting FUSE on %s\n", mountpoint);
+    if ((ch = fuse_mount(mountpoint, &args)) != NULL) {
+        fprintf(stderr, "Done mounting FUSE\n");
         pthread_cleanup_push(elfuse_cleanup_mount, mountpoint);
 
+        fprintf(stderr, "Creating FUSE\n");
         fuse = fuse_new(ch, &args, &elfuse_oper, sizeof(elfuse_oper), NULL);
         if (fuse != NULL) {
-            pthread_cleanup_push(elfuse_cleanup_fuse, NULL);
 
-            struct fuse_session *se = fuse_get_session(fuse);
-            fprintf(stderr, "Start the Elfuse loop\n");
+            /* TODO: move into a separate function  */
 
-
-            /* TODO: move into a separate function with additional */
-            struct fuse_chan *ch = fuse_session_next_chan(se, NULL);
             size_t bufsize = fuse_chan_bufsize(ch);
             char *buf = malloc(bufsize);
             if (!buf) {
 		fprintf(stderr, "fuse: failed to allocate read buffer\n");
 		return -1;
             }
+
+            pthread_cleanup_push(elfuse_cleanup_fuse, buf);
+
+            struct fuse_session *se = fuse_get_session(fuse);
+            fprintf(stderr, "Start the Elfuse loop\n");
+
 
             while (!fuse_session_exited(se)) {
 		struct fuse_chan *tmpch = ch;
@@ -466,37 +474,12 @@ elfuse_fuse_loop(char* mountpath)
 		fuse_session_process_buf(se, &fbuf, tmpch);
             }
 
-            free(buf);
-            fuse_session_reset(se);
+            pthread_cleanup_pop(true);
             /* TODO: end move */
 
-            pthread_cleanup_pop(true);
-            fprintf(stderr, "Stop the Elfuse loop\n");
         }
         pthread_cleanup_pop(true);
     }
-    pthread_cleanup_pop(true);
 
     return err ? 1 : 0;
-}
-
-void
-elfuse_stop_loop()
-{
-    pthread_mutex_lock(&elfuse_mutex);
-    bool is_looping = fuse != NULL;
-    if (!is_looping) {
-        pthread_mutex_unlock(&elfuse_mutex);
-        return;
-    }
-    fuse_exit(fuse);
-    pthread_mutex_unlock(&elfuse_mutex);
-
-    while (is_looping) {
-        sleep(1);
-        pthread_mutex_lock(&elfuse_mutex);
-        is_looping = fuse != NULL;
-        pthread_mutex_unlock(&elfuse_mutex);
-    }
-    fprintf(stderr, "Elfuse unmounted\n");
 }
