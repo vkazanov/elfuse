@@ -6,7 +6,6 @@
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
-#include <string.h>
 
 #include "emacs-module.h"
 #include "elfuse-fuse.h"
@@ -83,11 +82,11 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 
         ptrdiff_t buffer_length;
         env->copy_string_contents(env, Qpath, NULL, &buffer_length);
-        char path[buffer_length];
+        char *path = malloc(buffer_length);
         env->copy_string_contents(env, Qpath, path, &buffer_length);
 
         fprintf(stderr, "Creating the FUSE thread\n");
-        if (pthread_create(&fuse_thread, NULL, elfuse_fuse_function, strdup(path)) == 0) {
+        if (pthread_create(&fuse_thread, NULL, elfuse_fuse_function, path) == 0) {
             elfuse_is_started = true;
             message(env, "FUSE thread mounted on %s", path);
             return t;
