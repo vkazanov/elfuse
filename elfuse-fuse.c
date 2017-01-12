@@ -417,12 +417,17 @@ elfuse_fuse_loop(void* mountpath)
     char *mountpoint;
     int err = -1;
 
+    pthread_mutex_lock(&elfuse_mutex);
 
     if (fuse_parse_cmdline(&args, &mountpoint, NULL, NULL) == -1) {
-        /* TODO: Fail here */
         fprintf(stderr, "Elfuse: failed parsing the command line\n");
         free(mountpath);
         free(mountpoint);
+
+        elfuse_init_code = INIT_ERR_ARGS;
+        pthread_cond_signal(&elfuse_cond_var);
+        pthread_mutex_unlock(&elfuse_mutex);
+
         pthread_exit(NULL);
     }
     free(mountpath);
@@ -431,6 +436,11 @@ elfuse_fuse_loop(void* mountpath)
     struct fuse_chan *ch = fuse_mount(mountpoint, &args);
     if (ch == NULL) {
         fprintf(stderr, "Elfuse: failed mounting\n");
+
+        elfuse_init_code = INIT_ERR_MOUNT;
+        pthread_cond_signal(&elfuse_cond_var);
+        pthread_mutex_unlock(&elfuse_mutex);
+
         pthread_exit(NULL);
     }
     pthread_cleanup_push(elfuse_cleanup_mount, mountpoint);
@@ -439,19 +449,33 @@ elfuse_fuse_loop(void* mountpath)
     fuse = fuse_new(ch, &args, &elfuse_oper, sizeof(elfuse_oper), NULL);
     if (fuse == NULL) {
         fprintf(stderr, "Elfuse: failed creating FUSE\n");
+
+        elfuse_init_code = INIT_ERR_CREATE;
+        pthread_cond_signal(&elfuse_cond_var);
+        pthread_mutex_unlock(&elfuse_mutex);
+
         pthread_exit(NULL);
     }
     size_t bufsize = fuse_chan_bufsize(ch);
     char *buf = malloc(bufsize);
     if (!buf) {
         fprintf(stderr, "Elfuse: failed to allocate the read buffer\n");
+
+        elfuse_init_code = INIT_ERR_ALLOC;
+        pthread_cond_signal(&elfuse_cond_var);
+        pthread_mutex_unlock(&elfuse_mutex);
+
         pthread_exit(NULL);
     }
     pthread_cleanup_push(elfuse_cleanup_fuse, buf);
 
+    /* Let Emacs know that init was a success */
+    elfuse_init_code = INIT_DONE;
+    pthread_cond_signal(&elfuse_cond_var);
+    pthread_mutex_unlock(&elfuse_mutex);
 
-    struct fuse_session *se = fuse_get_session(fuse);
     fprintf(stderr, "Elfuse: starting main loop\n");
+    struct fuse_session *se = fuse_get_session(fuse);
     while (!fuse_session_exited(se)) {
         struct fuse_chan *tmpch = ch;
         struct fuse_buf fbuf = {

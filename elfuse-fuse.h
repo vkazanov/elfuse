@@ -6,6 +6,15 @@
 extern pthread_mutex_t elfuse_mutex;
 extern pthread_cond_t elfuse_cond_var;
 
+/* Init codes */
+enum elfuse_init_code_enum {
+    INIT_DONE,
+    INIT_ERR_ARGS,
+    INIT_ERR_MOUNT,
+    INIT_ERR_CREATE,
+    INIT_ERR_ALLOC
+} elfuse_init_code;
+
 /* CREATE args and results */
 struct elfuse_args_create {
     const char *path;

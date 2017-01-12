@@ -75,15 +75,49 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
         char *path = malloc(buffer_length);
         env->copy_string_contents(env, Qpath, path, &buffer_length);
 
-        if (pthread_create(&fuse_thread, NULL, elfuse_fuse_loop, path) == 0) {
-            elfuse_is_started = true;
-            message(env, "Elfuse: FUSE mounted on %s", path);
-            return t;
-        } else {
-            char *msg = "Elfuse: failed to init a FUSE thread";
+        pthread_mutex_lock(&elfuse_mutex);
+
+        if (pthread_create(&fuse_thread, NULL, elfuse_fuse_loop, path) != 0) {
+            char *msg = "Elfuse: failed to launch a FUSE thread";
             message(env, msg);
             fprintf(stderr, "%s\n", msg);
+
+            pthread_mutex_unlock(&elfuse_mutex);
+            return nil;
         }
+
+        pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+
+        emacs_value res = nil;
+        switch (elfuse_init_code) {
+        case INIT_DONE:
+            elfuse_is_started = true;
+            res = t;
+            break;
+        case INIT_ERR_ARGS:
+            fprintf(stderr, "Elfuse: failed to parse FUSE args\n");
+            res = nil;
+            break;
+        case INIT_ERR_MOUNT:
+            fprintf(stderr, "Elfuse: failed to mount on %s\n", path);
+            res = nil;
+            break;
+        case INIT_ERR_ALLOC:
+            fprintf(stderr, "Elfuse: failed to allocate FUSE buffer\n");
+            res = nil;
+            break;
+        case INIT_ERR_CREATE:
+            fprintf(stderr, "Elfuse: failed to create FUSE instance %d\n", elfuse_init_code);
+            res = nil;
+            break;
+        default:
+            fprintf(stderr, "Elfuse: unknown init code %d\n", elfuse_init_code);
+            res = nil;
+            break;
+        }
+
+        pthread_mutex_unlock(&elfuse_mutex);
+        return res;
     }
     return nil;
 }
