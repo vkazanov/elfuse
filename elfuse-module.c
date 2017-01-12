@@ -68,7 +68,6 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     (void)nargs; (void)data;
 
     if (!elfuse_is_started) {
-        fprintf(stderr, "Trying to start the FUSE thread\n");
         emacs_value Qpath = args[0];
 
         ptrdiff_t buffer_length;
@@ -76,13 +75,14 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
         char *path = malloc(buffer_length);
         env->copy_string_contents(env, Qpath, path, &buffer_length);
 
-        fprintf(stderr, "Creating the FUSE thread\n");
         if (pthread_create(&fuse_thread, NULL, elfuse_fuse_loop, path) == 0) {
             elfuse_is_started = true;
-            message(env, "FUSE thread mounted on %s", path);
+            message(env, "Elfuse: FUSE mounted on %s", path);
             return t;
         } else {
-            message(env, "Failed to init a FUSE thread");
+            char *msg = "Elfuse: failed to init a FUSE thread";
+            message(env, msg);
+            fprintf(stderr, "%s\n", msg);
         }
     }
     return nil;
