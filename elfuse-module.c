@@ -18,15 +18,6 @@ static pthread_t fuse_thread;
 static emacs_value nil;
 static emacs_value t;
 
-static void *
-elfuse_fuse_function (void *arg)
-{
-    fprintf(stderr, "Elfuse thread starting\n");
-    elfuse_fuse_loop(arg);
-    fprintf(stderr, "Elfuse thread done\n");
-    return NULL;
-}
-
 static void
 message (emacs_env *env, const char *format, ...)
 {
@@ -86,7 +77,7 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
         env->copy_string_contents(env, Qpath, path, &buffer_length);
 
         fprintf(stderr, "Creating the FUSE thread\n");
-        if (pthread_create(&fuse_thread, NULL, elfuse_fuse_function, path) == 0) {
+        if (pthread_create(&fuse_thread, NULL, elfuse_fuse_loop, path) == 0) {
             elfuse_is_started = true;
             message(env, "FUSE thread mounted on %s", path);
             return t;

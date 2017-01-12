@@ -402,8 +402,8 @@ static void elfuse_cleanup_fuse(void *buf) {
     free(buf);
 }
 
-int
-elfuse_fuse_loop(char* mountpath)
+void *
+elfuse_fuse_loop(void* mountpath)
 {
     int argc = 2;
     char* argv[] = {
@@ -445,7 +445,7 @@ elfuse_fuse_loop(char* mountpath)
     char *buf = malloc(bufsize);
     if (!buf) {
         fprintf(stderr, "Elfuse: failed to allocate the read buffer\n");
-        return -1;
+        pthread_exit(NULL);
     }
     pthread_cleanup_push(elfuse_cleanup_fuse, buf);
 
@@ -477,5 +477,5 @@ elfuse_fuse_loop(char* mountpath)
     /* Cleanup the mount point */
     pthread_cleanup_pop(true);
 
-    return err ? 1 : 0;
+    return NULL;
 }

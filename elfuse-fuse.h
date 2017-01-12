@@ -165,7 +165,7 @@ struct elfuse_call_state {
 
 } elfuse_call;
 
-int
-elfuse_fuse_loop(char* mountpath);
+void *
+elfuse_fuse_loop(void *mountpath);
 
 #endif //ELFUSE_FUSE_H
