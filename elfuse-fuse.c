@@ -449,14 +449,15 @@ elfuse_fuse_loop(void* mountpath)
         mountpath
     };
 
-    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     char *mountpoint;
     int err = -1;
 
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
     pthread_mutex_lock(&elfuse_mutex);
 
+    /* Parse arguments */
     if (fuse_parse_cmdline(&args, &mountpoint, NULL, NULL) == -1) {
         fprintf(stderr, "Elfuse: failed parsing the command line\n");
         free(mountpath);
@@ -471,6 +472,7 @@ elfuse_fuse_loop(void* mountpath)
     free(mountpath);
 
 
+    /* Mount the FUSE FS */
     struct fuse_chan *ch = fuse_mount(mountpoint, &args);
     if (ch == NULL) {
         fprintf(stderr, "Elfuse: failed mounting\n");
@@ -483,7 +485,7 @@ elfuse_fuse_loop(void* mountpath)
     }
     pthread_cleanup_push(elfuse_cleanup_mount, mountpoint);
 
-
+    /* Create the FUSE instance */
     fuse = fuse_new(ch, &args, &elfuse_oper, sizeof(elfuse_oper), NULL);
     if (fuse == NULL) {
         fprintf(stderr, "Elfuse: failed creating FUSE\n");
@@ -494,6 +496,7 @@ elfuse_fuse_loop(void* mountpath)
 
         pthread_exit(NULL);
     }
+    /* Prepare a working buffer */
     size_t bufsize = fuse_chan_bufsize(ch);
     char *buf = malloc(bufsize);
     if (!buf) {
@@ -512,6 +515,7 @@ elfuse_fuse_loop(void* mountpath)
     pthread_cond_signal(&elfuse_cond_var);
     pthread_mutex_unlock(&elfuse_mutex);
 
+    /* Go-go-go! */
     fprintf(stderr, "Elfuse: starting main loop\n");
     struct fuse_session *se = fuse_get_session(fuse);
     while (!fuse_session_exited(se)) {

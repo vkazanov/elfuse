@@ -89,29 +89,40 @@ Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
         pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
         emacs_value res = nil;
+        char *msg;
         switch (elfuse_init_code) {
         case INIT_DONE:
             elfuse_is_started = true;
             res = t;
             break;
         case INIT_ERR_ARGS:
-            fprintf(stderr, "Elfuse: failed to parse FUSE args\n");
+            msg = "Elfuse: failed to launch a FUSE thread\n";
+            message(env, msg);
+            fprintf(stderr, "%s", msg);
             res = nil;
             break;
         case INIT_ERR_MOUNT:
+            msg = "Elfuse: failed to mount on %s\n";
+            message(env, msg, path);
             fprintf(stderr, "Elfuse: failed to mount on %s\n", path);
             res = nil;
             break;
         case INIT_ERR_ALLOC:
-            fprintf(stderr, "Elfuse: failed to allocate FUSE buffer\n");
+            msg = "Elfuse: failed to launch a FUSE thread";
+            message(env, msg);
+            fprintf(stderr, "%s", msg);
             res = nil;
             break;
         case INIT_ERR_CREATE:
-            fprintf(stderr, "Elfuse: failed to create FUSE instance %d\n", elfuse_init_code);
+            msg = "Elfuse: failed to create FUSE instance %d\n";
+            message(env, msg, elfuse_init_code);
+            fprintf(stderr, msg, elfuse_init_code);
             res = nil;
             break;
         default:
-            fprintf(stderr, "Elfuse: unknown init code %d\n", elfuse_init_code);
+            msg = "Elfuse: failed to launch a FUSE thread";
+            message(env, msg);
+            fprintf(stderr, "%s", msg);
             res = nil;
             break;
         }
@@ -127,22 +138,29 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
     (void)env; (void)nargs; (void)args; (void)data;
 
-    if (elfuse_is_started) {
-        elfuse_is_started = false;
-        if (pthread_cancel(fuse_thread) != 0) {
-            fprintf(stderr, "Elfuse: failed to cancel the FUSE thread\n");
-            return nil;
-        }
-        pthread_cond_signal(&elfuse_cond_var);
-        fprintf(stderr, "Elfuse: cond variable signal sent\n");
-        if (pthread_join(fuse_thread, NULL) != 0) {
-            fprintf(stderr, "Elfuse: failed to join the FUSE thread\n");
-            return nil;
-        }
-        fprintf(stderr, "Elfuse: thread cancelled\n");
-        return t;
+    if (!elfuse_is_started) {
+        return nil;
     }
-    return nil;
+
+    elfuse_is_started = false;
+
+    if (pthread_cancel(fuse_thread) != 0) {
+        char* msg = "Elfuse: failed to cancel the FUSE thread\n";
+        fprintf(stderr, "%s", msg);
+        message(env, msg);
+        return nil;
+    }
+
+    pthread_cond_signal(&elfuse_cond_var);
+
+    if (pthread_join(fuse_thread, NULL) != 0) {
+        char* msg = "Elfuse: failed to join the FUSE thread\n";
+        fprintf(stderr, "%s", msg);
+        message(env, msg);
+        return nil;
+    }
+
+    return t;
 }
 
 static int elfuse_handle_create(emacs_env *env, const char *path);

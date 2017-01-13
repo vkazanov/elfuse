@@ -67,7 +67,7 @@
 		    (cancel-timer timer))))))))
 
 (elfuse--start "mount/")
-(elfuse--loop)
+;; (elfuse--loop)
 ;; (elfuse--stop)
 ;; (elfuse--start "mount/")
 ;; (elfuse--loop)
