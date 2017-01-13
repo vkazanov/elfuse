@@ -189,3 +189,5 @@
   емакса.
 
   - [ ] Внести в проект заголовок емаксовый?
+
+  - [ ] FORTIFY_SOURCE, -fstack-protector, etc

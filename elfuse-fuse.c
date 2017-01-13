@@ -18,7 +18,8 @@ pthread_mutex_t elfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t elfuse_cond_var = PTHREAD_COND_INITIALIZER;
 
 struct elfuse_call_state elfuse_call = {
-    .request_state = WAITING_NONE
+    .request_state = WAITING_NONE,
+    .response_state = RESPONSE_NOTREADY,
 };
 
 static int
@@ -32,6 +33,7 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
     /* Function to call */
     elfuse_call.request_state = WAITING_CREATE;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
 
     /* Set function args */
     elfuse_call.args.create.path = path;
@@ -43,7 +45,7 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "CREATE callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.create.code == CREATE_DONE) {
             fprintf(stderr, "CREATE received results (code=DONE)\n");
             res = 0;
@@ -51,6 +53,9 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
             fprintf(stderr, "CREATE received results (code=FAIL)\n");
             res = -ENOENT;
         }
+    } else {
+        fprintf(stderr, "CREATE response not ready\n");
+        res = -ENOSYS;
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -68,6 +73,7 @@ elfuse_rename(const char *oldpath, const char *newpath)
 
     /* Function to call */
     elfuse_call.request_state = WAITING_RENAME;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
 
     /* Set function args */
     elfuse_call.args.rename.oldpath = oldpath;
@@ -79,7 +85,7 @@ elfuse_rename(const char *oldpath, const char *newpath)
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "RENAME callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.rename.code == RENAME_DONE) {
             fprintf(stderr, "RENAME received results (code=DONE)\n");
             res = 0;
@@ -87,6 +93,9 @@ elfuse_rename(const char *oldpath, const char *newpath)
             fprintf(stderr, "RENAME received results (code=UNKNOWN)\n");
             res = -ENOENT;
         }
+    } else {
+        fprintf(stderr, "RENAME response not ready\n");
+        res = -ENOSYS;
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -104,6 +113,7 @@ elfuse_getattr(const char *path, struct stat *stbuf)
 
     /* Function to call */
     elfuse_call.request_state = WAITING_GETATTR;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
 
     /* Set function args */
     elfuse_call.args.getattr.path = path;
@@ -115,7 +125,7 @@ elfuse_getattr(const char *path, struct stat *stbuf)
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "GETATTR callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         memset(stbuf, 0, sizeof(struct stat));
         if (elfuse_call.results.getattr.code == GETATTR_FILE) {
             fprintf(stderr, "GETATTR received results (file %s)\n", path);
@@ -132,6 +142,9 @@ elfuse_getattr(const char *path, struct stat *stbuf)
             fprintf(stderr, "GETATTR received results (unknown %s)\n", path);
             res = -ENOENT;
         }
+    } else {
+        fprintf(stderr, "GETATTR response not ready\n");
+        res = -ENOSYS;
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -153,6 +166,7 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     /* Function to call */
     elfuse_call.request_state = WAITING_READDIR;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
 
     /* Set function args */
     elfuse_call.args.readdir.path = path;
@@ -164,7 +178,7 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "READDIR callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "READDIR received results\n");
         for (size_t i = 0; i < elfuse_call.results.readdir.files_size; i++) {
             filler(buf, elfuse_call.results.readdir.files[i], NULL, 0);
@@ -172,6 +186,9 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
         free(elfuse_call.results.readdir.files);
         res = 0;
+    } else {
+        fprintf(stderr, "READDIR response not ready\n");
+        res = -ENOSYS;
     }
 
 
@@ -194,6 +211,7 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
 
     /* Function to call */
     elfuse_call.request_state = WAITING_OPEN;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
 
     /* Set callback args */
     elfuse_call.args.open.path = path;
@@ -204,7 +222,7 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "OPEN callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "OPEN received results (%d)\n", elfuse_call.results.open.code == OPEN_FOUND);
 
         if (elfuse_call.results.open.code == OPEN_FOUND) {
@@ -212,6 +230,9 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
         } else {
             res = -EACCES;
         }
+    } else {
+        fprintf(stderr, "OPEN response not ready\n");
+        res = -ENOSYS;
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -233,6 +254,7 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
 
     /* Function to call */
     elfuse_call.request_state = WAITING_RELEASE;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
 
     /* Set callback args */
     elfuse_call.args.release.path = path;
@@ -243,7 +265,7 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "RELEASE callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "RELEASE received results (%d)\n", elfuse_call.results.release.code == RELEASE_FOUND);
 
         if (elfuse_call.results.release.code == RELEASE_FOUND) {
@@ -251,6 +273,9 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
         } else {
             res = -EACCES;
         }
+    } else {
+        fprintf(stderr, "RELEASE response not ready\n");
+        res = -ENOSYS;
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -271,6 +296,7 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 
     /* Function to call */
     elfuse_call.request_state = WAITING_READ;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
 
     /* Set function args */
     elfuse_call.args.read.path = path;
@@ -283,7 +309,7 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "READ callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.read.bytes_read >= 0) {
             fprintf(stderr, "READ received results %s(%d)\n", elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
             memcpy(buf, elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
@@ -293,6 +319,9 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
             fprintf(stderr, "READ did not receive results (%d)\n", elfuse_call.results.read.bytes_read);
             res = -ENOENT;
         }
+    } else {
+        fprintf(stderr, "READ response not ready\n");
+        res = -ENOSYS;
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -313,6 +342,7 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 
     /* Function to call */
     elfuse_call.request_state = WAITING_WRITE;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
 
     /* Set function args */
     elfuse_call.args.write.path = path;
@@ -326,7 +356,7 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "WRITE callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.write.size >= 0) {
             fprintf(stderr, "WRITE received results %d\n", elfuse_call.results.write.size);
             res = elfuse_call.results.write.size;
@@ -334,6 +364,9 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
             fprintf(stderr, "WRITE did not receive results (%d)\n", elfuse_call.results.write.size);
             res = -ENOENT;
         }
+    } else {
+        fprintf(stderr, "WRITE response not ready\n");
+        res = -ENOSYS;
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -362,7 +395,7 @@ elfuse_truncate(const char *path, off_t size)
     if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "TRUNCATE callback undefined\n");
         res = -ENOSYS;
-    } else {
+    } else if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.truncate.code == TRUNCATE_DONE) {
             fprintf(stderr, "TRUNCATE received results %d\n", elfuse_call.results.truncate.code);
             res = 0;
@@ -370,6 +403,9 @@ elfuse_truncate(const char *path, off_t size)
             fprintf(stderr, "TRUNCATE did not receive results (%d)\n", elfuse_call.results.truncate.code);
             res = -ENOENT;
         }
+    } else {
+        fprintf(stderr, "TRUNCATE response not ready\n");
+        res = -ENOSYS;
     }
 
     elfuse_call.request_state = WAITING_NONE;
@@ -393,11 +429,13 @@ static struct fuse_operations elfuse_oper = {
 static struct fuse *fuse;
 
 static void elfuse_cleanup_mount(void *mountpoint) {
+    fprintf(stderr, "Elfuse: unmounting\n");
     fuse_unmount(mountpoint, NULL);
     free(mountpoint);
 }
 
 static void elfuse_cleanup_fuse(void *buf) {
+    fprintf(stderr, "Elfuse: cleanup fuse\n");
     fuse_destroy(fuse);
     free(buf);
 }

@@ -145,7 +145,8 @@ struct elfuse_call_state {
 
     enum elfuse_response_state {
         RESPONSE_SUCCESS,
-        RESPONSE_UNDEFINED
+        RESPONSE_UNDEFINED,
+        RESPONSE_NOTREADY
     } response_state;
 
     union args {

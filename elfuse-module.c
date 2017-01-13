@@ -130,14 +130,16 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     if (elfuse_is_started) {
         elfuse_is_started = false;
         if (pthread_cancel(fuse_thread) != 0) {
-            fprintf(stderr, "Failed to cancel the FUSE thread\n");
+            fprintf(stderr, "Elfuse: failed to cancel the FUSE thread\n");
             return nil;
         }
+        pthread_cond_signal(&elfuse_cond_var);
+        fprintf(stderr, "Elfuse: cond variable signal sent\n");
         if (pthread_join(fuse_thread, NULL) != 0) {
-            fprintf(stderr, "Failed to join the FUSE thread\n");
+            fprintf(stderr, "Elfuse: failed to join the FUSE thread\n");
             return nil;
         }
-        fprintf(stderr, "FUSE thread cancelled\n");
+        fprintf(stderr, "Elfuse: thread cancelled\n");
         return t;
     }
     return nil;
@@ -202,8 +204,8 @@ Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], voi
         break;
     }
 
-    pthread_cond_signal(&elfuse_cond_var);
     pthread_mutex_unlock(&elfuse_mutex);
+    pthread_cond_signal(&elfuse_cond_var);
 
     return t;
 }
