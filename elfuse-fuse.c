@@ -1,16 +1,19 @@
+#define _XOPEN_SOURCE 700
 #define FUSE_USE_VERSION 26
 
-#include <fuse.h>
-#include <fuse/fuse_lowlevel.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include <stdlib.h>
+#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fuse.h>
+#include <fuse/fuse_lowlevel.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <assert.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "elfuse-fuse.h"
 

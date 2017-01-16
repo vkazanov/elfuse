@@ -1,6 +1,6 @@
 CC      = gcc
 LD      = gcc
-CFLAGS  = -ggdb3 -Wall `pkg-config fuse --cflags`
+CFLAGS  = -ggdb3 -Wall -Wextra -Werror -std=c11 `pkg-config fuse --cflags`
 LDFLAGS = `pkg-config fuse --libs` -pthread -Wl,--no-undefined
 DEPS = elfuse-fuse.h
 OBJ = elfuse-module.o elfuse-fuse.o
