@@ -63,7 +63,7 @@ fboundp (emacs_env *env, emacs_value Sfun) {
 }
 
 static emacs_value
-Felfuse_start (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
+Felfuse_mount (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
     (void)nargs; (void)data;
 
@@ -477,11 +477,11 @@ emacs_module_init (struct emacs_runtime *ert)
 
     emacs_value fun = env->make_function (
         env, 1, 1,
-        Felfuse_start,
+        Felfuse_mount,
         "Start the elfuse thread. ",
         NULL
     );
-    bind_function (env, "elfuse--start", fun);
+    bind_function (env, "elfuse--mount", fun);
 
     fun = env->make_function (
         env, 0, 0,

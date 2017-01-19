@@ -20,6 +20,6 @@ clean:
 	rm elfuse-module.so
 
 test: elfuse-module.so
-	emacs -Q -L $(PWD) --file test.el
+	emacs -Q -L $(PWD) --file elfuse.el
 
 .PHONY: clean test
