@@ -1,7 +1,7 @@
 (require 'elfuse-module)
 (require 'seq)
 
-(defconst elfuse--time-between-checks 0.01
+(defvar elfuse-time-between-checks 0.01
   "Time interval in seconds between Elfuse request checks.")
 
 (defvar elfuse--check-timer nil
@@ -37,7 +37,7 @@
 
 (defun elfuse--start-loop ()
   (setq elfuse--check-timer
-        (run-at-time nil elfuse--time-between-checks 'elfuse--on-timer)))
+        (run-at-time nil elfuse-time-between-checks 'elfuse--on-timer)))
 
 (defun elfuse--on-timer ()
   (unless (elfuse--check-callbacks)
