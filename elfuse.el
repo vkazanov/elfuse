@@ -23,6 +23,13 @@
   (elfuse--stop)
   (remove-hook 'kill-emacs-hook 'elfuse--stop))
 
+(defmacro elfuse-define-op (opname arglist &rest body)
+  "Define a Fuse operation OPNAME handler."
+  (declare (indent 2))
+  `(defun ,(intern (concat "elfuse--" (symbol-name opname) "-callback"))
+       ,arglist
+     ,@body))
+
 (defun elfuse--start-loop ()
   (setq elfuse--check-timer
         (run-at-time nil elfuse--time-between-checks 'elfuse--on-timer)))

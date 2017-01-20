@@ -8,11 +8,11 @@
 ;;   (message "RENAME: %s" oldpath newpath)
 ;;   (if (member oldpath '("/hello" "/other" "/etc")) 1 -1))
 
-(defun elfuse--readdir-callback (path)
+(elfuse-define-op readdir (path)
   (message "READDIR: %s" path)
   ["." ".." "hello" "other" "etc"])
 
-(defun elfuse--getattr-callback (path)
+(elfuse-define-op getattr (path)
   (message "GETATTR: %s" path)
   (cond
    ((equal path "/hello") (vector 'file (seq-length "hellodata")))
@@ -21,7 +21,7 @@
    ((equal path "/") (vector 'dir 0))
    (t [nil, 0])))
 
-(defun elfuse--open-callback (path)
+(elfuse-define-op open (path)
   (message "OPEN: %s" path)
   (cond
    ((equal path "/hello") t)
@@ -33,7 +33,7 @@
 ;;   (message "RELEASE: %s" path)
 ;;   (elfuse--open-callback path))
 
-(defun elfuse--read-callback (path offset size)
+(elfuse-define-op read (path offset size)
   (message "READ: %s %d %d" path offset size)
   (cond
    ((equal path "/hello") (elfuse--substring "hellodata" offset size))
