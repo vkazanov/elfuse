@@ -1,12 +1,12 @@
 (require 'elfuse)
 
-(defun elfuse--create-callback (path)
-  (message "CREATE: %s" path)
-  (if (member oldpath '("/hello" "/other" "/etc")) -1 1))
+;; (defun elfuse--create-callback (path)
+;;   (message "CREATE: %s" path)
+;;   (if (member oldpath '("/hello" "/other" "/etc")) -1 1))
 
-(defun elfuse--rename-callback (oldpath newpath)
-  (message "RENAME: %s" oldpath newpath)
-  (if (member oldpath '("/hello" "/other" "/etc")) 1 -1))
+;; (defun elfuse--rename-callback (oldpath newpath)
+;;   (message "RENAME: %s" oldpath newpath)
+;;   (if (member oldpath '("/hello" "/other" "/etc")) 1 -1))
 
 (defun elfuse--readdir-callback (path)
   (message "READDIR: %s" path)
@@ -29,9 +29,9 @@
    ((equal path "/etc") t)
    (t nil)))
 
-(defun elfuse--release-callback (path)
-  (message "RELEASE: %s" path)
-  (elfuse--open-callback path))
+;; (defun elfuse--release-callback (path)
+;;   (message "RELEASE: %s" path)
+;;   (elfuse--open-callback path))
 
 (defun elfuse--read-callback (path offset size)
   (message "READ: %s %d %d" path offset size)
@@ -47,18 +47,18 @@
    ((> (+ offset size) (seq-length str)) (seq-subseq str offset))
    (t (seq-subseq str offset (+ offset size)))))
 
-(defun elfuse--write-callback (path buf offset)
-  (message "WRITE: %s %s %d" path buf offset)
-  (cond
-   ((equal path "/hello") 1)
-   ((equal path "/other") 2)
-   ((equal path "/etc") 3)
-   (t 0)))
+;; (defun elfuse--write-callback (path buf offset)
+;;   (message "WRITE: %s %s %d" path buf offset)
+;;   (cond
+;;    ((equal path "/hello") 1)
+;;    ((equal path "/other") 2)
+;;    ((equal path "/etc") 3)
+;;    (t 0)))
 
-(defun elfuse--truncate-callback (path offset)
-  (message "TRUNCATE: %s %d" path offset)
-  (cond
-   ((equal path "/hello") 0)
-   ((equal path "/other") 0)
-   ((equal path "/etc") 0)
-   (t -1)))
+;; (defun elfuse--truncate-callback (path offset)
+;;   (message "TRUNCATE: %s %d" path offset)
+;;   (cond
+;;    ((equal path "/hello") 0)
+;;    ((equal path "/other") 0)
+;;    ((equal path "/etc") 0)
+;;    (t -1)))
