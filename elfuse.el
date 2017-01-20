@@ -5,10 +5,18 @@
   "Time interval in seconds between Elfuse request checks.")
 
 (defvar elfuse--check-timer nil
-  "Timer calling the callback-responding function")
+  "Timer calling the callback-responding function.")
 
-(defconst elfuse--supported-ops '(create rename readdir getattr open release read write truncate)
-  "A list of Fuse ops supported by Efluse")
+(defconst elfuse-supported-ops-alist '((create . 1)
+                                       (rename . 2)
+                                       (readdir . 1)
+                                       (getattr . 1)
+                                       (open . 1)
+                                       (release . 1)
+                                       (read . 3)
+                                       (write . 3)
+                                       (truncate . 2))
+  "An alist of Fuse op name/arity pairs supported by Elfuse.")
 
 (defun elfuse-start (mountpath)
   "Start Elfuse using a given MOUNTPATH."
@@ -27,13 +35,27 @@
   (remove-hook 'kill-emacs-hook 'elfuse--stop))
 
 (defmacro elfuse-define-op (opname arglist &rest body)
-  "Define a Fuse operation OPNAME handler."
+  "Define a Fuse operation OPNAME handler.
+Apart from defining the function required by Elfuse the macro
+also checks that the OPNAME is a supported Fuse operation and
+there's a correct number of arguments in the ARGLIST. A list of
+correct ops is defined in the `elfuse-supported-ops-alist'
+variable.
+
+Argument ARGLIST is a list of operation arguments.
+
+Optional argument BODY is a body of the function that will handle
+the operation."
   (declare (indent 2))
-  (if (memq opname elfuse--supported-ops)
-      `(defun ,(intern (concat "elfuse--" (symbol-name opname) "-callback"))
-           ,arglist
-         ,@body)
-    `(error "Operation '%s' not supported" ,(symbol-name opname))))
+  (cond ((not (assq opname elfuse--supported-ops-alist))
+         `(error "Operation '%s' not supported" ,(symbol-name opname)))
+        ((not (= (alist-get opname elfuse--supported-ops-alist) (length arglist)))
+         `(error "Operation '%s' requires %d arguments"
+                 ,(symbol-name opname)
+                 ,(alist-get opname elfuse--supported-ops-alist)))
+        (t `(defun ,(intern (concat "elfuse--" (symbol-name opname) "-callback"))
+                ,arglist
+              ,@body))))
 
 (defun elfuse--start-loop ()
   (setq elfuse--check-timer
