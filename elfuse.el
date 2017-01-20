@@ -7,6 +7,9 @@
 (defvar elfuse--check-timer nil
   "Timer calling the callback-responding function")
 
+(defconst elfuse--supported-ops '(create rename readdir getattr open release read write truncate)
+  "A list of Fuse ops supported by Efluse")
+
 (defun elfuse-start (mountpath)
   "Start Elfuse using a given MOUNTPATH."
   (interactive "DElfuse mount path: ")
@@ -26,9 +29,11 @@
 (defmacro elfuse-define-op (opname arglist &rest body)
   "Define a Fuse operation OPNAME handler."
   (declare (indent 2))
-  `(defun ,(intern (concat "elfuse--" (symbol-name opname) "-callback"))
-       ,arglist
-     ,@body))
+  (if (memq opname elfuse--supported-ops)
+      `(defun ,(intern (concat "elfuse--" (symbol-name opname) "-callback"))
+           ,arglist
+         ,@body)
+    `(error "Operation '%s' not supported" ,(symbol-name opname))))
 
 (defun elfuse--start-loop ()
   (setq elfuse--check-timer
