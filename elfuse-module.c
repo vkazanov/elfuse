@@ -241,10 +241,23 @@ elfuse_handle_create(emacs_env *env, const char *path)
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
     };
     emacs_value Ires_code = env->funcall(env, Qcreate, sizeof(args)/sizeof(args[0]), args);
+
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     int res_code = env->extract_integer(env, Ires_code);
     fprintf(stderr, "CREATE result = %d\n", res_code);
     elfuse_call.results.create.code = res_code >= 0 ? CREATE_DONE : CREATE_FAIL;
@@ -262,11 +275,24 @@ elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, oldpath, strlen(oldpath)),
         env->make_string(env, newpath, strlen(newpath)),
     };
     emacs_value Ires_code = env->funcall(env, Qrename, sizeof(args)/sizeof(args[0]), args);
+
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     int res_code = env->extract_integer(env, Ires_code);
     fprintf(stderr, "RENAME result = %d\n", res_code);
     elfuse_call.results.rename.code = res_code >= 0 ? RENAME_DONE : RENAME_UNKNOWN;
@@ -327,10 +353,23 @@ elfuse_handle_getattr(emacs_env *env, const char *path)
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
     };
     emacs_value getattr_result_vector = env->funcall(env, Qgetattr, sizeof(args)/sizeof(args[0]), args);
+
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     emacs_value Qfiletype = env->vec_get(env, getattr_result_vector, 0);
     emacs_value file_size = env->vec_get(env, getattr_result_vector, 1);
 
@@ -356,11 +395,23 @@ elfuse_handle_open(emacs_env *env, const char *path)
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
     };
     emacs_value Qfound = env->funcall(env, Qopen, sizeof(args)/sizeof(args[0]), args);
 
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     if (env->eq(env, Qfound, t)) {
         elfuse_call.results.open.code = OPEN_FOUND;
     } else {
@@ -380,11 +431,23 @@ elfuse_handle_release(emacs_env *env, const char *path)
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
     };
     emacs_value Qfound = env->funcall(env, Qrelease, sizeof(args)/sizeof(args[0]), args);
 
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     if (env->eq(env, Qfound, t)) {
         elfuse_call.results.release.code = RELEASE_FOUND;
     } else {
@@ -404,6 +467,7 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
         env->make_integer(env, offset),
@@ -411,6 +475,17 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
     };
     emacs_value Sdata = env->funcall(env, Qread, sizeof(args)/sizeof(args[0]), args);
 
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     if (env->eq(env, Sdata, nil)) {
         fprintf(stderr, "Handling READ: nil\n");
         elfuse_call.results.read.bytes_read = -1;
@@ -440,12 +515,25 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
         env->make_string(env, buf, size),
         env->make_integer(env, offset),
     };
     emacs_value Ires_code = env->funcall(env, Qwrite, sizeof(args)/sizeof(args[0]), args);
+
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     int res_code = env->extract_integer(env, Ires_code);
     if (res_code >= 0) {
         elfuse_call.results.write.size  = size;
@@ -466,12 +554,24 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, path, strlen(path)),
         env->make_integer(env, size),
     };
-
     emacs_value Ires_code = env->funcall(env, Qtruncate, sizeof(args)/sizeof(args[0]), args);
+
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     if (env->extract_integer(env, Ires_code) >= 0) {
         elfuse_call.results.truncate.code  = TRUNCATE_DONE;
     } else {
@@ -479,25 +579,6 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
     }
 
     return RESPONSE_SUCCESS;
-}
-
-void
-print_symbol(emacs_env *env, emacs_value symbol)
-{
-    emacs_value Qsymbol_name = env->intern(env, "symbol-name");
-    emacs_value args[] = {
-        symbol
-    };
-
-    emacs_value Sname = env->funcall(env, Qsymbol_name, sizeof(args)/sizeof(args[0]), args);
-    ptrdiff_t buffer_length;
-    env->copy_string_contents(env, Sname, NULL, &buffer_length);
-    fprintf(stderr, "BLENGTH: %ld\n", buffer_length);
-
-    char *name = malloc(buffer_length);
-    env->copy_string_contents(env, Sname, name, &buffer_length);
-    fprintf(stderr, "BNAME: %s\n", name);
-    free(name);
 }
 
 static int

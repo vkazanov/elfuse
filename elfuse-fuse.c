@@ -56,8 +56,11 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "CREATE callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "CREATE callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "CREATE response not ready\n");
+        fprintf(stderr, "CREATE callback unknown error\n");
         res = -ENOSYS;
     }
 
@@ -96,8 +99,11 @@ elfuse_rename(const char *oldpath, const char *newpath)
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "RENAME callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "RENAME callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "RENAME response not ready\n");
+        fprintf(stderr, "RENAME callback unknown error\n");
         res = -ENOSYS;
     }
 
@@ -145,8 +151,11 @@ elfuse_getattr(const char *path, struct stat *stbuf)
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "GETATTR callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "GETATTR callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "GETATTR response not ready\n");
+        fprintf(stderr, "GETATTR unknown error\n");
         res = -ENOSYS;
     }
 
@@ -235,8 +244,11 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "OPEN callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "OPEN callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "OPEN response not ready\n");
+        fprintf(stderr, "OPEN unknown error\n");
         res = -ENOSYS;
     }
 
@@ -278,8 +290,11 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "RELEASE callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "RELEASE callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "RELEASE response not ready\n");
+        fprintf(stderr, "RELEASE unknown error\n");
         res = -ENOSYS;
     }
 
@@ -372,8 +387,11 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "WRITE callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "WRITE callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "WRITE response not ready\n");
+        fprintf(stderr, "WRITE callback unknown error\n");
         res = -ENOSYS;
     }
 
@@ -412,8 +430,11 @@ elfuse_truncate(const char *path, off_t size)
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "TRUNCATE callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "TRUNCATE callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "TRUNCATE response not ready\n");
+        fprintf(stderr, "TRUNCATE callback unknown error\n");
         res = -ENOSYS;
     }
 
