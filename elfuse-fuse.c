@@ -189,8 +189,11 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "READDIR callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "READDIR callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "READDIR response not ready\n");
+        fprintf(stderr, "READDIR unknown error\n");
         res = -ENOSYS;
     }
 
@@ -321,8 +324,11 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
         fprintf(stderr, "READ callback undefined\n");
         res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "READ callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "READ response not ready\n");
+        fprintf(stderr, "READ callback unknown error\n");
         res = -ENOSYS;
     }
 

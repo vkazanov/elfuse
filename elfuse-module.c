@@ -17,6 +17,7 @@ static pthread_t fuse_thread;
 
 static emacs_value nil;
 static emacs_value t;
+static emacs_value elfuse_op_error;
 
 static void
 message (emacs_env *env, const char *format, ...)
@@ -173,6 +174,8 @@ static int elfuse_handle_read(emacs_env *env, const char *path, size_t offset, s
 static int elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
 static int elfuse_handle_truncate(emacs_env *env, const char *path, size_t size);
 
+static int elfuse_handle_op_error(emacs_env *env, enum emacs_funcall_exit exit_status, emacs_value exit_symbol, emacs_value exit_data);
+
 static emacs_value
 Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
@@ -281,11 +284,23 @@ elfuse_handle_readdir(emacs_env *env, const char *path)
         return RESPONSE_UNDEFINED;
     }
 
+    /* Build args and execute the function call itself */
     emacs_value args[] = {
         env->make_string(env, path, strlen(path))
     };
     emacs_value file_vector = env->funcall(env, Qreaddir, sizeof(args)/sizeof(args[0]), args);
 
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
     elfuse_call.results.readdir.files_size = env->vec_size(env, file_vector);
     size_t arr_bytes_length = elfuse_call.results.readdir.files_size*sizeof(elfuse_call.results.readdir.files[0]);
     elfuse_call.results.readdir.files = malloc(arr_bytes_length);
@@ -466,6 +481,43 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
     return RESPONSE_SUCCESS;
 }
 
+void
+print_symbol(emacs_env *env, emacs_value symbol)
+{
+    emacs_value Qsymbol_name = env->intern(env, "symbol-name");
+    emacs_value args[] = {
+        symbol
+    };
+
+    emacs_value Sname = env->funcall(env, Qsymbol_name, sizeof(args)/sizeof(args[0]), args);
+    ptrdiff_t buffer_length;
+    env->copy_string_contents(env, Sname, NULL, &buffer_length);
+    fprintf(stderr, "BLENGTH: %ld\n", buffer_length);
+
+    char *name = malloc(buffer_length);
+    env->copy_string_contents(env, Sname, name, &buffer_length);
+    fprintf(stderr, "BNAME: %s\n", name);
+    free(name);
+}
+
+static int
+elfuse_handle_op_error(emacs_env *env, enum emacs_funcall_exit exit_code, emacs_value exit_symbol, emacs_value exit_data)
+{
+    int res = RESPONSE_UNKNOWN_ERROR;
+    if (exit_code == emacs_funcall_exit_signal) {
+        if (env->eq(env, exit_symbol, elfuse_op_error)) {
+            fprintf(stderr, "An Elfuse signal caught\n");
+            elfuse_call.response_err_code = env->extract_integer(env, exit_data);
+            res = RESPONSE_SIGNAL_ERROR;
+        } else {
+            fprintf(stderr, "Unknown signal caught\n");
+        }
+
+    } else {
+        fprintf(stderr, "An unknown non-local op exit\n");
+    }
+    return res;
+}
 
 int
 emacs_module_init (struct emacs_runtime *ert)
@@ -474,6 +526,7 @@ emacs_module_init (struct emacs_runtime *ert)
 
     nil = env->intern(env, "nil");
     t = env->intern(env, "t");
+    elfuse_op_error = env->intern(env, "elfuse-op-error");
 
     emacs_value fun = env->make_function (
         env, 1, 1,

@@ -1,21 +1,32 @@
 (require 'elfuse-module)
 (require 'seq)
 
+(defconst elfuse-errno-EPERM 1)         ; Operation not permitted
+(defconst elfuse-errno-ENOENT 2)        ; No such file or directory
+(defconst elfuse-errno-EACCESS 13)      ; Permission denied
+(defconst elfuse-errno-EBUSY 16)        ; Block device required
+(defconst elfuse-errno-EEXIST 17)       ; File exists
+(defconst elfuse-errno-ENOTDIR 20)      ; Not a directory
+(defconst elfuse-errno-EISDIR 21)       ; Is a directory
+(defconst elfuse-errno-EROFS 21)       ; Read-only file system
+(defconst elfuse-errno-ENOSYS 38)       ; Function not implemented
+(defconst elfuse-errno-ENOTEMPTY 39)    ; Directory not empty
+
 (defvar elfuse-time-between-checks 0.01
   "Time interval in seconds between Elfuse request checks.")
 
 (defvar elfuse--check-timer nil
   "Timer calling the callback-responding function.")
 
-(defconst elfuse-supported-ops-alist '((create . 1)
-                                       (rename . 2)
-                                       (readdir . 1)
-                                       (getattr . 1)
-                                       (open . 1)
-                                       (release . 1)
-                                       (read . 3)
-                                       (write . 3)
-                                       (truncate . 2))
+(defconst elfuse--supported-ops-alist '((create . 1)
+                                        (rename . 2)
+                                        (readdir . 1)
+                                        (getattr . 1)
+                                        (open . 1)
+                                        (release . 1)
+                                        (read . 3)
+                                        (write . 3)
+                                        (truncate . 2))
   "An alist of Fuse op name/arity pairs supported by Elfuse.")
 
 (defun elfuse-start (mountpath)
@@ -34,12 +45,14 @@
   (elfuse--stop)
   (remove-hook 'kill-emacs-hook 'elfuse--stop))
 
+(define-error 'elfuse-op-error "Elfuse operation error")
+
 (defmacro elfuse-define-op (opname arglist &rest body)
   "Define a Fuse operation OPNAME handler.
 Apart from defining the function required by Elfuse the macro
 also checks that the OPNAME is a supported Fuse operation and
 there's a correct number of arguments in the ARGLIST. A list of
-correct ops is defined in the `elfuse-supported-ops-alist'
+correct ops is defined in the `elfuse--supported-ops-alist'
 variable.
 
 Argument ARGLIST is a list of operation arguments.

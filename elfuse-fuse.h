@@ -146,8 +146,11 @@ struct elfuse_call_state {
     enum elfuse_response_state {
         RESPONSE_SUCCESS,
         RESPONSE_UNDEFINED,
-        RESPONSE_NOTREADY
+        RESPONSE_NOTREADY,
+        RESPONSE_SIGNAL_ERROR,
+        RESPONSE_UNKNOWN_ERROR,
     } response_state;
+    int response_err_code;
 
     union args {
         struct elfuse_args_create create;
