@@ -1,16 +1,18 @@
 (require 'elfuse-module)
 (require 'seq)
 
-(defconst elfuse-errno-EPERM 1)         ; Operation not permitted
-(defconst elfuse-errno-ENOENT 2)        ; No such file or directory
-(defconst elfuse-errno-EACCESS 13)      ; Permission denied
-(defconst elfuse-errno-EBUSY 16)        ; Block device required
-(defconst elfuse-errno-EEXIST 17)       ; File exists
-(defconst elfuse-errno-ENOTDIR 20)      ; Not a directory
-(defconst elfuse-errno-EISDIR 21)       ; Is a directory
-(defconst elfuse-errno-EROFS 21)       ; Read-only file system
-(defconst elfuse-errno-ENOSYS 38)       ; Function not implemented
-(defconst elfuse-errno-ENOTEMPTY 39)    ; Directory not empty
+
+(defconst elfuse-errno-EPERM 1 "errno: operation not permitted")
+(defconst elfuse-errno-ENOENT 2 "errno: no such file or directory")
+(defconst elfuse-errno-EACCESS 13 "errno: permission denied")
+(defconst elfuse-errno-EBUSY 16 "errno: block device required")
+(defconst elfuse-errno-EEXIST 17 "errno: file exists")
+(defconst elfuse-errno-ENOTDIR 20 "errno: not a directory")
+(defconst elfuse-errno-EISDIR 21 "errno: is a directory")
+(defconst elfuse-errno-EINVAL 22 "errno: invalid argument")
+(defconst elfuse-errno-EROFS 30 "errno: read-only file system")
+(defconst elfuse-errno-ENOSYS 38 "errno: function not implemented")
+(defconst elfuse-errno-ENOTEMPTY 39 "errno: directory not empty")
 
 (defvar elfuse-time-between-checks 0.01
   "Time interval in seconds between Elfuse request checks.")
@@ -66,7 +68,7 @@ the operation."
          `(error "Operation '%s' requires %d arguments"
                  ,(symbol-name opname)
                  ,(alist-get opname elfuse--supported-ops-alist)))
-        (t `(defun ,(intern (concat "elfuse--" (symbol-name opname) "-callback"))
+        (t `(defun ,(intern (concat "elfuse--" (symbol-name opname) "-op"))
                 ,arglist
               ,@body))))
 
@@ -75,7 +77,7 @@ the operation."
         (run-at-time nil elfuse-time-between-checks 'elfuse--on-timer)))
 
 (defun elfuse--on-timer ()
-  (unless (elfuse--check-callbacks)
+  (unless (elfuse--check-ops)
     (cancel-timer timer)
     (setq elfuse--check-timer nil)))
 

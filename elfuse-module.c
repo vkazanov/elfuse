@@ -177,7 +177,7 @@ static int elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
 static int elfuse_handle_op_error(emacs_env *env, enum emacs_funcall_exit exit_status, emacs_value exit_symbol, emacs_value exit_data);
 
 static emacs_value
-Felfuse_check_callbacks(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
+Felfuse_check_ops(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
     (void)env; (void)nargs; (void)args; (void)data;
 
@@ -236,7 +236,7 @@ elfuse_handle_create(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling CREATE (path=%s).\n", path);
 
-    emacs_value Qcreate = env->intern(env, "elfuse--create-callback");
+    emacs_value Qcreate = env->intern(env, "elfuse--create-op");
     if (!fboundp(env, Qcreate)) {
         return RESPONSE_UNDEFINED;
     }
@@ -270,7 +270,7 @@ elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
 {
     fprintf(stderr, "Handling RENAME (oldpath=%s, newpath=%s).\n", oldpath, newpath);
 
-    emacs_value Qrename = env->intern(env, "elfuse--rename-callback");
+    emacs_value Qrename = env->intern(env, "elfuse--rename-op");
     if (!fboundp(env, Qrename)) {
         return RESPONSE_UNDEFINED;
     }
@@ -305,7 +305,7 @@ elfuse_handle_readdir(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling READDIR (path=%s).\n", path);
 
-    emacs_value Qreaddir = env->intern(env, "elfuse--readdir-callback");
+    emacs_value Qreaddir = env->intern(env, "elfuse--readdir-op");
     if (!fboundp(env, Qreaddir)) {
         return RESPONSE_UNDEFINED;
     }
@@ -348,7 +348,7 @@ elfuse_handle_getattr(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
 
-    emacs_value Qgetattr = env->intern(env, "elfuse--getattr-callback");
+    emacs_value Qgetattr = env->intern(env, "elfuse--getattr-op");
     if (!fboundp(env, Qgetattr)) {
         return RESPONSE_UNDEFINED;
     }
@@ -390,7 +390,7 @@ elfuse_handle_open(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling OPEN (path=%s).\n", path);
 
-    emacs_value Qopen = env->intern(env, "elfuse--open-callback");
+    emacs_value Qopen = env->intern(env, "elfuse--open-op");
     if (!fboundp(env, Qopen)) {
         return RESPONSE_UNDEFINED;
     }
@@ -426,7 +426,7 @@ elfuse_handle_release(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling RELEASE (path=%s).\n", path);
 
-    emacs_value Qrelease = env->intern(env, "elfuse--release-callback");
+    emacs_value Qrelease = env->intern(env, "elfuse--release-op");
     if (!fboundp(env, Qrelease)) {
         return RESPONSE_UNDEFINED;
     }
@@ -462,7 +462,7 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
 {
     fprintf(stderr, "Handling READ (path=%s).\n", path);
 
-    emacs_value Qread = env->intern(env, "elfuse--read-callback");
+    emacs_value Qread = env->intern(env, "elfuse--read-op");
     if (!fboundp(env, Qread)) {
         return RESPONSE_UNDEFINED;
     }
@@ -510,7 +510,7 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
 {
     fprintf(stderr, "Handling WRITE (path=%s).\n", path);
 
-    emacs_value Qwrite = env->intern(env, "elfuse--write-callback");
+    emacs_value Qwrite = env->intern(env, "elfuse--write-op");
     if (!fboundp(env, Qwrite)) {
         return RESPONSE_UNDEFINED;
     }
@@ -549,7 +549,7 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
 {
     fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
 
-    emacs_value Qtruncate = env->intern(env, "elfuse--truncate-callback");
+    emacs_value Qtruncate = env->intern(env, "elfuse--truncate-op");
     if (!fboundp(env, Qtruncate)) {
         return RESPONSE_UNDEFINED;
     }
@@ -627,11 +627,11 @@ emacs_module_init (struct emacs_runtime *ert)
 
     fun = env->make_function (
         env, 0, 0,
-        Felfuse_check_callbacks,
+        Felfuse_check_ops,
         "Check if Fuse callbacks are waiting for reply and reply. ",
         NULL
     );
-    bind_function (env, "elfuse--check-callbacks", fun);
+    bind_function (env, "elfuse--check-ops", fun);
 
     provide (env, "elfuse-module");
 
