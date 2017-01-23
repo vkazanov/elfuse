@@ -164,17 +164,17 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
     return t;
 }
 
-static int elfuse_handle_create(emacs_env *env, const char *path);
-static int elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath);
-static int elfuse_handle_readdir(emacs_env *env, const char *path);
-static int elfuse_handle_getattr(emacs_env *env, const char *path);
-static int elfuse_handle_open(emacs_env *env, const char *path);
-static int elfuse_handle_release(emacs_env *env, const char *path);
-static int elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
-static int elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
-static int elfuse_handle_truncate(emacs_env *env, const char *path, size_t size);
+static int handle_create(emacs_env *env, const char *path);
+static int handle_rename(emacs_env *env, const char *oldpath, const char *newpath);
+static int handle_readdir(emacs_env *env, const char *path);
+static int handle_getattr(emacs_env *env, const char *path);
+static int handle_open(emacs_env *env, const char *path);
+static int handle_release(emacs_env *env, const char *path);
+static int handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
+static int handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
+static int handle_truncate(emacs_env *env, const char *path, size_t size);
 
-static int elfuse_handle_op_error(emacs_env *env, enum emacs_funcall_exit exit_status, emacs_value exit_symbol, emacs_value exit_data);
+static int non_local_op_exit(emacs_env *env, enum emacs_funcall_exit exit_status, emacs_value exit_symbol, emacs_value exit_data);
 
 static emacs_value
 Felfuse_check_ops(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
@@ -191,35 +191,35 @@ Felfuse_check_ops(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *dat
 
     switch (elfuse_call.request_state) {
     case WAITING_CREATE:
-        elfuse_call.response_state = elfuse_handle_create(env, elfuse_call.args.create.path);
+        elfuse_call.response_state = handle_create(env, elfuse_call.args.create.path);
         break;
     case WAITING_RENAME:
-        elfuse_call.response_state = elfuse_handle_rename(env, elfuse_call.args.rename.oldpath, elfuse_call.args.rename.newpath);
+        elfuse_call.response_state = handle_rename(env, elfuse_call.args.rename.oldpath, elfuse_call.args.rename.newpath);
         break;
     case WAITING_READDIR:
-        elfuse_call.response_state = elfuse_handle_readdir(env, elfuse_call.args.readdir.path);
+        elfuse_call.response_state = handle_readdir(env, elfuse_call.args.readdir.path);
         break;
     case WAITING_GETATTR:
-        elfuse_call.response_state = elfuse_handle_getattr(env, elfuse_call.args.getattr.path);
+        elfuse_call.response_state = handle_getattr(env, elfuse_call.args.getattr.path);
         break;
     case WAITING_OPEN:
-        elfuse_call.response_state = elfuse_handle_open(env, elfuse_call.args.open.path);
+        elfuse_call.response_state = handle_open(env, elfuse_call.args.open.path);
         break;
     case WAITING_RELEASE:
-        elfuse_call.response_state = elfuse_handle_release(env, elfuse_call.args.open.path);
+        elfuse_call.response_state = handle_release(env, elfuse_call.args.open.path);
         break;
     case WAITING_READ:
-        elfuse_call.response_state = elfuse_handle_read(
+        elfuse_call.response_state = handle_read(
             env, elfuse_call.args.read.path, elfuse_call.args.read.offset, elfuse_call.args.read.size
         );
         break;
     case WAITING_WRITE:
-        elfuse_call.response_state = elfuse_handle_write(
+        elfuse_call.response_state = handle_write(
             env, elfuse_call.args.write.path, elfuse_call.args.write.buf, elfuse_call.args.write.size, elfuse_call.args.write.offset
         );
         break;
     case WAITING_TRUNCATE:
-        elfuse_call.response_state = elfuse_handle_truncate(env, elfuse_call.args.truncate.path, elfuse_call.args.truncate.size);
+        elfuse_call.response_state = handle_truncate(env, elfuse_call.args.truncate.path, elfuse_call.args.truncate.size);
         break;
     case WAITING_NONE:
         break;
@@ -232,7 +232,7 @@ Felfuse_check_ops(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *dat
 }
 
 static int
-elfuse_handle_create(emacs_env *env, const char *path)
+handle_create(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling CREATE (path=%s).\n", path);
 
@@ -254,7 +254,7 @@ elfuse_handle_create(emacs_env *env, const char *path)
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -266,7 +266,7 @@ elfuse_handle_create(emacs_env *env, const char *path)
 }
 
 static int
-elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
+handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
 {
     fprintf(stderr, "Handling RENAME (oldpath=%s, newpath=%s).\n", oldpath, newpath);
 
@@ -289,7 +289,7 @@ elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -301,7 +301,7 @@ elfuse_handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
 }
 
 static int
-elfuse_handle_readdir(emacs_env *env, const char *path)
+handle_readdir(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling READDIR (path=%s).\n", path);
 
@@ -323,7 +323,7 @@ elfuse_handle_readdir(emacs_env *env, const char *path)
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -344,7 +344,7 @@ elfuse_handle_readdir(emacs_env *env, const char *path)
 }
 
 static int
-elfuse_handle_getattr(emacs_env *env, const char *path)
+handle_getattr(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
 
@@ -366,7 +366,7 @@ elfuse_handle_getattr(emacs_env *env, const char *path)
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -386,7 +386,7 @@ elfuse_handle_getattr(emacs_env *env, const char *path)
 }
 
 static int
-elfuse_handle_open(emacs_env *env, const char *path)
+handle_open(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling OPEN (path=%s).\n", path);
 
@@ -408,7 +408,7 @@ elfuse_handle_open(emacs_env *env, const char *path)
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -422,7 +422,7 @@ elfuse_handle_open(emacs_env *env, const char *path)
 }
 
 static int
-elfuse_handle_release(emacs_env *env, const char *path)
+handle_release(emacs_env *env, const char *path)
 {
     fprintf(stderr, "Handling RELEASE (path=%s).\n", path);
 
@@ -444,7 +444,7 @@ elfuse_handle_release(emacs_env *env, const char *path)
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -458,7 +458,7 @@ elfuse_handle_release(emacs_env *env, const char *path)
 }
 
 static int
-elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
+handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
 {
     fprintf(stderr, "Handling READ (path=%s).\n", path);
 
@@ -482,7 +482,7 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -506,7 +506,7 @@ elfuse_handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
 }
 
 static int
-elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset)
+handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset)
 {
     fprintf(stderr, "Handling WRITE (path=%s).\n", path);
 
@@ -530,7 +530,7 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -545,7 +545,7 @@ elfuse_handle_write(emacs_env *env, const char *path, const char *buf, size_t si
 }
 
 static int
-elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
+handle_truncate(emacs_env *env, const char *path, size_t size)
 {
     fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
 
@@ -568,7 +568,7 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
     );
     if (exit_status != emacs_funcall_exit_return) {
         env->non_local_exit_clear(env);
-        return elfuse_handle_op_error(env, exit_status, exit_symbol, exit_data);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
     }
 
     /* Handle proper response */
@@ -582,7 +582,7 @@ elfuse_handle_truncate(emacs_env *env, const char *path, size_t size)
 }
 
 static int
-elfuse_handle_op_error(emacs_env *env, enum emacs_funcall_exit exit_code, emacs_value exit_symbol, emacs_value exit_data)
+non_local_op_exit(emacs_env *env, enum emacs_funcall_exit exit_code, emacs_value exit_symbol, emacs_value exit_data)
 {
     int res = RESPONSE_UNKNOWN_ERROR;
     if (exit_code == emacs_funcall_exit_signal) {
