@@ -22,19 +22,35 @@
 
 (elfuse-define-op getattr (path)
   (message "GETATTR: %s" path)
+  (let ((name (file-name-nondirectory path)))
+    (cond
+     ((equal path "/")
+      [dir 0])
+     ((member name
+              (list-buffers--list-buffer-names))
+      (vector 'file (buffer-size (get-buffer name))))
+     (t (signal 'elfuse-op-error elfuse-errno-ENOENT)))))
+
+(elfuse-define-op read (path offset size)
+  (message "READ: %s %d %d" path offset size)
+  (if-let ((name (file-name-nondirectory path))
+           (buf (get-buffer name)))
+      (with-current-buffer buf
+        (list-buffers--substring (buffer-string) offset size))
+    (signal 'elfuse-op-error elfuse-errno-ENOENT)))
+
+(defun list-buffers--substring (str offset size)
   (cond
-   ((equal path "/")
-    [dir 0])
-   ((member (file-name-nondirectory path)
-            (list-buffers--list-buffer-names))
-    [file 0])
-   (t (signal 'elfuse-op-error elfuse-errno-ENOENT))))
+   ((> offset (seq-length str)) "")
+   ((> (+ offset size) (seq-length str)) (seq-subseq str offset))
+   (t (seq-subseq str offset (+ offset size)))))
+
 
 (defun list-buffers--list-buffer-names ()
   (thread-last (buffer-list)
-    (seq-filter #'list-buffers--filter)
+    (seq-filter #'list-buffers--posix-filename-p)
     (seq-map #'buffer-name)))
 
-(defun list-buffers--filter (buf)
-  (let ((name (buffer-name buf)))
-    (string-match list-buffers--posix-portable-filename-re name)))
+(defun list-buffers--posix-filename-p (buf)
+  (string-match list-buffers--posix-portable-filename-re
+                (buffer-name buf)))
