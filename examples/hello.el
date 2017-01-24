@@ -1,5 +1,6 @@
 (require 'elfuse)
 
+
 (elfuse-define-op readdir (path)
   (message "READDIR: %s" path)
   (unless (equal path "/")
