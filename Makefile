@@ -5,8 +5,6 @@ LDFLAGS = `pkg-config fuse --libs` -pthread -Wl,--no-undefined
 DEPS = elfuse-fuse.h
 OBJ = elfuse-module.o elfuse-fuse.o
 
-TESTMOUNTPATH = mount
-
 all: elfuse-module.so
 
 elfuse-module.so: $(OBJ)
@@ -21,5 +19,4 @@ clean:
 
 test: elfuse-module.so
 	emacs -Q -L $(PWD) --load "elfuse.el" --load "examples/list-buffers.el"
-
 .PHONY: clean test
