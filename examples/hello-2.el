@@ -5,7 +5,7 @@
 (elfuse-define-op readdir (path)
   (message "READDIR: %s" path)
   (unless (equal path "/")
-    (signal 'elfuse-op-error elfuse-errno-ENOENT))
+    (signal 'elfuse-op-error elfuse-ENOENT))
   (apply 'vector hello-2--file-list))
 
 (elfuse-define-op getattr (path)
@@ -14,7 +14,7 @@
          (vector 'dir 0))
         ((member (file-name-nondirectory path) hello-2--file-list)
          (vector 'file 0))
-        (t (signal 'elfuse-op-error elfuse-errno-ENOENT))))
+        (t (signal 'elfuse-op-error elfuse-ENOENT))))
 
 (elfuse-define-op create (path)
   (message "CREATE: %s" path)

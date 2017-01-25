@@ -15,7 +15,7 @@
 (elfuse-define-op readdir (path)
   (message "READDIR: %s" path)
   (unless (equal path "/")
-    (signal 'elfuse-op-error elfuse-errno-ENOENT))
+    (signal 'elfuse-op-error elfuse-ENOENT))
   (seq-concatenate 'vector
                    '("." "..")
                    (list-buffers--list-buffer-names)))
@@ -29,7 +29,7 @@
      ((member name
               (list-buffers--list-buffer-names))
       (vector 'file (buffer-size (get-buffer name))))
-     (t (signal 'elfuse-op-error elfuse-errno-ENOENT)))))
+     (t (signal 'elfuse-op-error elfuse-ENOENT)))))
 
 (elfuse-define-op read (path offset size)
   (message "READ: %s %d %d" path offset size)
@@ -37,14 +37,14 @@
            (buf (get-buffer name)))
       (with-current-buffer buf
         (list-buffers--substring (buffer-string) offset size))
-    (signal 'elfuse-op-error elfuse-errno-ENOENT)))
+    (signal 'elfuse-op-error elfuse-ENOENT)))
 
 (elfuse-define-op unlink (path)
   (message "UNLINK: %s" path)
   (if-let ((name (file-name-nondirectory path))
            (buf (get-buffer name)))
       (kill-buffer buf)
-    (signal 'elfuse-op-error elfuse-errno-ENOENT)))
+    (signal 'elfuse-op-error elfuse-ENOENT)))
 
 (defun list-buffers--substring (str offset size)
   (cond

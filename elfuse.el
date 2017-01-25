@@ -2,17 +2,17 @@
 (require 'seq)
 
 
-(defconst elfuse-errno-EPERM 1 "errno: operation not permitted")
-(defconst elfuse-errno-ENOENT 2 "errno: no such file or directory")
-(defconst elfuse-errno-EACCESS 13 "errno: permission denied")
-(defconst elfuse-errno-EBUSY 16 "errno: block device required")
-(defconst elfuse-errno-EEXIST 17 "errno: file exists")
-(defconst elfuse-errno-ENOTDIR 20 "errno: not a directory")
-(defconst elfuse-errno-EISDIR 21 "errno: is a directory")
-(defconst elfuse-errno-EINVAL 22 "errno: invalid argument")
-(defconst elfuse-errno-EROFS 30 "errno: read-only file system")
-(defconst elfuse-errno-ENOSYS 38 "errno: function not implemented")
-(defconst elfuse-errno-ENOTEMPTY 39 "errno: directory not empty")
+(defconst elfuse-EPERM 1 "errno: operation not permitted")
+(defconst elfuse-ENOENT 2 "errno: no such file or directory")
+(defconst elfuse-EACCESS 13 "errno: permission denied")
+(defconst elfuse-EBUSY 16 "errno: block device required")
+(defconst elfuse-EEXIST 17 "errno: file exists")
+(defconst elfuse-ENOTDIR 20 "errno: not a directory")
+(defconst elfuse-EISDIR 21 "errno: is a directory")
+(defconst elfuse-EINVAL 22 "errno: invalid argument")
+(defconst elfuse-EROFS 30 "errno: read-only file system")
+(defconst elfuse-ENOSYS 38 "errno: function not implemented")
+(defconst elfuse-ENOTEMPTY 39 "errno: directory not empty")
 
 (defvar elfuse-time-between-checks 0.01
   "Time interval in seconds between Elfuse request checks.")
