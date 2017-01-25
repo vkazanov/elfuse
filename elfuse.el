@@ -28,8 +28,9 @@
                                         (release . 1)
                                         (read . 3)
                                         (write . 3)
-                                        (truncate . 2))
-  "An alist of Fuse op name/arity pairs supported by Elfuse.")
+                                        (truncate . 2)
+                                        (unlink . 1))
+  "An alist of Fuse operation name/arity pairs supported by Elfuse.")
 
 (defun elfuse-start (mountpath)
   "Start Elfuse using a given MOUNTPATH."

@@ -39,6 +39,13 @@
         (list-buffers--substring (buffer-string) offset size))
     (signal 'elfuse-op-error elfuse-errno-ENOENT)))
 
+(elfuse-define-op unlink (path)
+  (message "UNLINK: %s" path)
+  (if-let ((name (file-name-nondirectory path))
+           (buf (get-buffer name)))
+      (kill-buffer buf)
+    (signal 'elfuse-op-error elfuse-errno-ENOENT)))
+
 (defun list-buffers--substring (str offset size)
   (cond
    ((> offset (seq-length str)) "")

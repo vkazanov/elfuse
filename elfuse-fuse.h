@@ -125,6 +125,18 @@ struct elfuse_results_truncate {
     } code;
 };
 
+/* UNLINK args and results */
+struct elfuse_args_unlink {
+    const char *path;
+};
+
+struct elfuse_results_unlink {
+    enum elfuse_results_unlink_code {
+        UNLINK_DONE,
+        UNLINK_UNKNOWN,
+    } code;
+};
+
 /* A unified data exchange struct. */
 struct elfuse_call_state {
     enum elfuse_request_state {
@@ -141,6 +153,7 @@ struct elfuse_call_state {
         WAITING_READ,
         WAITING_WRITE,
         WAITING_TRUNCATE,
+        WAITING_UNLINK,
     } request_state;
 
     enum elfuse_response_state {
@@ -162,6 +175,7 @@ struct elfuse_call_state {
         struct elfuse_args_read read;
         struct elfuse_args_write write;
         struct elfuse_args_truncate truncate;
+        struct elfuse_args_unlink unlink;
     } args;
 
     union results {
@@ -174,6 +188,7 @@ struct elfuse_call_state {
         struct elfuse_results_read read;
         struct elfuse_results_write write;
         struct elfuse_results_truncate truncate;
+        struct elfuse_results_unlink unlink;
     } results;
 
 } elfuse_call;

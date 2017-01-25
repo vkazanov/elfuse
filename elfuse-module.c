@@ -173,6 +173,7 @@ static int handle_release(emacs_env *env, const char *path);
 static int handle_read(emacs_env *env, const char *path, size_t offset, size_t size);
 static int handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset);
 static int handle_truncate(emacs_env *env, const char *path, size_t size);
+static int handle_unlink(emacs_env *env, const char *path);
 
 static int non_local_op_exit(emacs_env *env, enum emacs_funcall_exit exit_status, emacs_value exit_symbol, emacs_value exit_data);
 
@@ -220,6 +221,9 @@ Felfuse_check_ops(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *dat
         break;
     case WAITING_TRUNCATE:
         elfuse_call.response_state = handle_truncate(env, elfuse_call.args.truncate.path, elfuse_call.args.truncate.size);
+        break;
+    case WAITING_UNLINK:
+        elfuse_call.response_state = handle_unlink(env, elfuse_call.args.unlink.path);
         break;
     case WAITING_NONE:
         break;
@@ -580,6 +584,44 @@ handle_truncate(emacs_env *env, const char *path, size_t size)
 
     return RESPONSE_SUCCESS;
 }
+
+
+static int
+handle_unlink(emacs_env *env, const char *path)
+{
+    fprintf(stderr, "Handling UNLINK (path=%s).\n", path);
+
+    emacs_value Qunlink = env->intern(env, "elfuse--unlink-op");
+    if (!fboundp(env, Qunlink)) {
+        return RESPONSE_UNDEFINED;
+    }
+
+    /* Build args and execute the function call itself */
+    emacs_value args[] = {
+        env->make_string(env, path, strlen(path)),
+    };
+    emacs_value Ires_code = env->funcall(env, Qunlink, sizeof(args)/sizeof(args[0]), args);
+
+    /* Handle possible non-local exits (signals or throws) */
+    emacs_value exit_symbol, exit_data;
+    enum emacs_funcall_exit exit_status = env->non_local_exit_get(
+        env, &exit_symbol, &exit_data
+    );
+    if (exit_status != emacs_funcall_exit_return) {
+        env->non_local_exit_clear(env);
+        return non_local_op_exit(env, exit_status, exit_symbol, exit_data);
+    }
+
+    /* Handle proper response */
+    if (env->extract_integer(env, Ires_code) >= 0) {
+        elfuse_call.results.unlink.code  = UNLINK_DONE;
+    } else {
+        elfuse_call.results.unlink.code  = UNLINK_UNKNOWN;
+    }
+
+    return RESPONSE_SUCCESS;
+}
+
 
 static int
 non_local_op_exit(emacs_env *env, enum emacs_funcall_exit exit_code, emacs_value exit_symbol, emacs_value exit_data)

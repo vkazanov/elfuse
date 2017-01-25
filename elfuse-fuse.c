@@ -444,6 +444,47 @@ elfuse_truncate(const char *path, off_t size)
     return res;
 }
 
+static int
+elfuse_unlink(const char *path)
+{
+    size_t res = 0;
+
+    pthread_mutex_lock(&elfuse_mutex);
+
+    /* Function to call */
+    elfuse_call.request_state = WAITING_UNLINK;
+    elfuse_call.response_state = RESPONSE_NOTREADY;
+
+    /* Set function args */
+    elfuse_call.args.unlink.path = path;
+
+    /* Wait for the funcall results */
+    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+
+    if (elfuse_call.response_state == RESPONSE_SUCCESS) {
+        if (elfuse_call.results.unlink.code == UNLINK_DONE) {
+            fprintf(stderr, "UNLINK received results %d\n", elfuse_call.results.unlink.code);
+            res = 0;
+        } else {
+            fprintf(stderr, "UNLINK did not receive results (%d)\n", elfuse_call.results.unlink.code);
+            res = -ENOENT;
+        }
+    } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
+        fprintf(stderr, "UNLINK callback undefined\n");
+        res = -ENOSYS;
+    } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
+        fprintf(stderr, "UNLINK callback error with code %d\n", elfuse_call.response_err_code);
+        res = -elfuse_call.response_err_code;
+    } else {
+        fprintf(stderr, "UNLINK callback unknown error\n");
+        res = -ENOSYS;
+    }
+
+    elfuse_call.request_state = WAITING_NONE;
+    pthread_mutex_unlock(&elfuse_mutex);
+    return res;
+}
+
 static struct fuse_operations elfuse_oper = {
     .create	= elfuse_create,
     .rename	= elfuse_rename,
@@ -454,6 +495,7 @@ static struct fuse_operations elfuse_oper = {
     .read	= elfuse_read,
     .write	= elfuse_write,
     .truncate	= elfuse_truncate,
+    .unlink	= elfuse_unlink,
 };
 
 static struct fuse *fuse;
