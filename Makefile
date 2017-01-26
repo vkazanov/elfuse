@@ -33,5 +33,6 @@ clean:
 	rm elfuse-module.so
 
 test: elfuse-module.so
-	emacs -Q -L $(PWD) --load "elfuse.el" --load "examples/list-buffers.el"
+	emacs -Q -L $(PWD) --load "elfuse.el" --load "examples/write-buffer.el"
+
 .PHONY: clean test
