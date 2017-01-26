@@ -13,6 +13,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with Elfuse.  If not, see <http://www.gnu.org/licenses/>.
 
+(require 'seq)
 (require 'elfuse)
 
 (defvar write-buffer--buffer-name "*Elfuse buffer*")
@@ -36,6 +37,25 @@
     (signal 'elfuse-op-error elfuse-ENOENT))
   (with-current-buffer (write-buffer--get-buffer)
     (write-buffer--substring (buffer-string) offset size)))
+
+(elfuse-define-op write (path buffer offset)
+  (message "WRITE: %s %s %d" path buffer offset)
+  (unless (equal path "/buffer")
+    (signal 'elfuse-op-error elfuse-ENOENT))
+  (with-current-buffer (write-buffer--get-buffer)
+    (goto-char offset)
+    (insert buffer))
+  (seq-length buffer))
+
+(elfuse-define-op truncate (path size)
+  (message "TRUNCATE: %s %d" path size)
+  (unless (equal path "/buffer")
+    (signal 'elfuse-op-error elfuse-ENOENT))
+  (with-current-buffer (write-buffer--get-buffer)
+    (let ((newbufstr (write-buffer--substring (buffer-string) 0 size)))
+      (erase-buffer)
+      (insert newbufstr)))
+  0)
 
 (defun write-buffer--substring (str offset size)
   (cond
