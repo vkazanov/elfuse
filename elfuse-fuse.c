@@ -57,25 +57,25 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     elfuse_call.args.create.path = path;
 
     /* Wait for the funcall results */
+    fprintf(stderr, "CREATE request (path=%s).\n", path);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
+        fprintf(stderr, "CREATE success (code=%d)\n", elfuse_call.results.create.code);
         if (elfuse_call.results.create.code == CREATE_DONE) {
-            fprintf(stderr, "CREATE received results (code=DONE)\n");
             res = 0;
         } else {
-            fprintf(stderr, "CREATE received results (code=FAIL)\n");
             res = -ENOENT;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "CREATE callback undefined\n");
+        fprintf(stderr, "CREATE fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "CREATE callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "CREATE fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "CREATE callback unknown error\n");
+        fprintf(stderr, "CREATE fail (unknown error\n)");
         res = -ENOSYS;
     }
 
@@ -101,24 +101,25 @@ elfuse_rename(const char *oldpath, const char *newpath)
     elfuse_call.args.rename.newpath = newpath;
 
     /* Wait for the funcall results */
+    fprintf(stderr, "RENAME request (oldpath=%s, newpath=%s).\n", oldpath, newpath);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.rename.code == RENAME_DONE) {
-            fprintf(stderr, "RENAME received results (code=DONE)\n");
+            fprintf(stderr, "RENAME success (code=DONE)\n");
             res = 0;
-        } else {
-            fprintf(stderr, "RENAME received results (code=UNKNOWN)\n");
+        }  {
+            fprintf(stderr, "RENAME success (code=UNKNOWN)\n");
             res = -ENOENT;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "RENAME callback undefined\n");
+        fprintf(stderr, "RENAME fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "RENAME callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "RENAME fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "RENAME callback unknown error\n");
+        fprintf(stderr, "RENAME fail unknown error\n");
         res = -ENOSYS;
     }
 
@@ -143,34 +144,35 @@ elfuse_getattr(const char *path, struct stat *stbuf)
     elfuse_call.args.getattr.path = path;
 
     /* Wait for the funcall results */
+    fprintf(stderr, "GETATTR request (path=%s)\n", path);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         memset(stbuf, 0, sizeof(struct stat));
         if (elfuse_call.results.getattr.code == GETATTR_FILE) {
-            fprintf(stderr, "GETATTR received results (file %s)\n", path);
+            fprintf(stderr, "GETATTR success (file %s)\n", path);
             stbuf->st_mode = S_IFREG | 0666;
             stbuf->st_nlink = 1;
             stbuf->st_size = elfuse_call.results.getattr.file_size;
             res = 0;
         } else if (elfuse_call.results.getattr.code == GETATTR_DIR) {
-            fprintf(stderr, "GETATTR received results (dir %s)\n", path);
+            fprintf(stderr, "GETATTR success (dir %s)\n", path);
             stbuf->st_mode = S_IFDIR | 0755;
             stbuf->st_nlink = 2;
             res = 0;
         } else {
-            fprintf(stderr, "GETATTR received results (unknown %s)\n", path);
+            fprintf(stderr, "GETATTR success (unknown %s)\n", path);
             res = -ENOENT;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "GETATTR callback undefined\n");
+        fprintf(stderr, "GETATTR fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "GETATTR callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "GETATTR fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "GETATTR unknown error\n");
+        fprintf(stderr, "GETATTR fail (unknown error)\n");
         res = -ENOSYS;
     }
 
@@ -199,25 +201,27 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     elfuse_call.args.readdir.path = path;
 
     /* Wait for results */
+    fprintf(stderr, "READDIR request (path=%s)\n", path);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
-        fprintf(stderr, "READDIR received results\n");
-        for (size_t i = 0; i < elfuse_call.results.readdir.files_size; i++) {
+        size_t files_size = elfuse_call.results.readdir.files_size;
+        fprintf(stderr, "READDIR success (files found = %ld)\n", files_size);
+        for (size_t i = 0; i < files_size; i++) {
             filler(buf, elfuse_call.results.readdir.files[i], NULL, 0);
         }
 
         free(elfuse_call.results.readdir.files);
         res = 0;
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "READDIR callback undefined\n");
+        fprintf(stderr, "READDIR fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "READDIR callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "READDIR fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "READDIR unknown error\n");
+        fprintf(stderr, "READDIR fail (unknown error)\n");
         res = -ENOSYS;
     }
 
@@ -246,10 +250,11 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
     elfuse_call.args.open.path = path;
 
     /* Wait for results */
+    fprintf(stderr, "OPEN request (path=%s)\n", path);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
-        fprintf(stderr, "OPEN received results (%d)\n", elfuse_call.results.open.code == OPEN_FOUND);
+        fprintf(stderr, "OPEN success (code=%d)\n", elfuse_call.results.open.code);
 
         if (elfuse_call.results.open.code == OPEN_FOUND) {
             res = 0;
@@ -257,13 +262,13 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
             res = -EACCES;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "OPEN callback undefined\n");
+        fprintf(stderr, "OPEN fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "OPEN callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "OPEN fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "OPEN unknown error\n");
+        fprintf(stderr, "OPEN fail (unknown error\n)");
         res = -ENOSYS;
     }
 
@@ -292,10 +297,11 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
     elfuse_call.args.release.path = path;
 
     /* Wait for results */
+    fprintf(stderr, "RELEASE request (path=%s)\n", path);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
-        fprintf(stderr, "RELEASE received results (%d)\n", elfuse_call.results.release.code == RELEASE_FOUND);
+        fprintf(stderr, "RELEASE success (code=%d)\n", elfuse_call.results.release.code);
 
         if (elfuse_call.results.release.code == RELEASE_FOUND) {
             res = 0;
@@ -303,13 +309,13 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
             res = -EACCES;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "RELEASE callback undefined\n");
+        fprintf(stderr, "RELEASE fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "RELEASE callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "RELEASE fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "RELEASE unknown error\n");
+        fprintf(stderr, "RELEASE fail (unknown error\n)");
         res = -ENOSYS;
     }
 
@@ -339,26 +345,27 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     elfuse_call.args.read.size = size;
 
     /* Wait for the funcall results */
+    fprintf(stderr, "READ request (path=%s, size=%ld, offset=%ld).\n", path, size, offset);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.read.bytes_read >= 0) {
-            fprintf(stderr, "READ received results %s(%d)\n", elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
+            fprintf(stderr, "READ success (data=%s, size=%d)\n", elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
             memcpy(buf, elfuse_call.results.read.data, elfuse_call.results.read.bytes_read);
             free(elfuse_call.results.read.data);
             res = elfuse_call.results.read.bytes_read;
         } else {
-            fprintf(stderr, "READ did not receive results (%d)\n", elfuse_call.results.read.bytes_read);
+            fprintf(stderr, "READ success (no data, size=%d)\n", elfuse_call.results.read.bytes_read);
             res = -ENOENT;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "READ callback undefined\n");
+        fprintf(stderr, "READ fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "READ callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "READ fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "READ callback unknown error\n");
+        fprintf(stderr, "READ fail (unknown error\n)");
         res = -ENOSYS;
     }
 
@@ -389,24 +396,24 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     elfuse_call.args.write.offset = offset;
 
     /* Wait for the funcall results */
+    fprintf(stderr, "WRITE request (path=%s, size=%ld, offset=%ld).\n", path, size, offset);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
+        fprintf(stderr, "WRITE success (size=%d)\n", elfuse_call.results.write.size);
         if (elfuse_call.results.write.size >= 0) {
-            fprintf(stderr, "WRITE received results %d\n", elfuse_call.results.write.size);
             res = elfuse_call.results.write.size;
         } else {
-            fprintf(stderr, "WRITE did not receive results (%d)\n", elfuse_call.results.write.size);
             res = -ENOENT;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "WRITE callback undefined\n");
+        fprintf(stderr, "WRITE fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "WRITE callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "WRITE fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "WRITE callback unknown error\n");
+        fprintf(stderr, "WRITE fail (unknown error\n)");
         res = -ENOSYS;
     }
 
@@ -432,24 +439,24 @@ elfuse_truncate(const char *path, off_t size)
     elfuse_call.args.write.size = size;
 
     /* Wait for the funcall results */
+    fprintf(stderr, "TRUNCATE request (path=%s, size=%ld).\n", path, size);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
+        fprintf(stderr, "TRUNCATE success (code=%d)\n", elfuse_call.results.truncate.code);
         if (elfuse_call.results.truncate.code == TRUNCATE_DONE) {
-            fprintf(stderr, "TRUNCATE received results %d\n", elfuse_call.results.truncate.code);
             res = 0;
         } else {
-            fprintf(stderr, "TRUNCATE did not receive results (%d)\n", elfuse_call.results.truncate.code);
             res = -ENOENT;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "TRUNCATE callback undefined\n");
+        fprintf(stderr, "TRUNCATE fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "TRUNCATE callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "TRUNCATE fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "TRUNCATE callback unknown error\n");
+        fprintf(stderr, "TRUNCATE fail (unknown error\n)");
         res = -ENOSYS;
     }
 
@@ -474,24 +481,24 @@ elfuse_unlink(const char *path)
     elfuse_call.args.unlink.path = path;
 
     /* Wait for the funcall results */
+    fprintf(stderr, "UNLINK request (path=%s).\n", path);
     pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
+        fprintf(stderr, "UNLINK success (code=%d)\n", elfuse_call.results.unlink.code);
         if (elfuse_call.results.unlink.code == UNLINK_DONE) {
-            fprintf(stderr, "UNLINK received results %d\n", elfuse_call.results.unlink.code);
             res = 0;
         } else {
-            fprintf(stderr, "UNLINK did not receive results (%d)\n", elfuse_call.results.unlink.code);
             res = -ENOENT;
         }
     } else if (elfuse_call.response_state == RESPONSE_UNDEFINED) {
-        fprintf(stderr, "UNLINK callback undefined\n");
+        fprintf(stderr, "TRUNCATE fail (operation undefined)\n");
         res = -ENOSYS;
     } else if (elfuse_call.response_state == RESPONSE_SIGNAL_ERROR) {
-        fprintf(stderr, "UNLINK callback error with code %d\n", elfuse_call.response_err_code);
+        fprintf(stderr, "TRUNCATE fail (elfuse signal with errno %d)\n", elfuse_call.response_err_code);
         res = -elfuse_call.response_err_code;
     } else {
-        fprintf(stderr, "UNLINK callback unknown error\n");
+        fprintf(stderr, "TRUNCATE fail (unknown error\n)");
         res = -ENOSYS;
     }
 

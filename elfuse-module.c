@@ -253,7 +253,7 @@ Felfuse_check_ops(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *dat
 static int
 handle_create(emacs_env *env, const char *path)
 {
-    fprintf(stderr, "Handling CREATE (path=%s).\n", path);
+    fprintf(stderr, "CREATE handle (path=%s).\n", path);
 
     emacs_value Qcreate = env->intern(env, "elfuse--create-op");
     if (!fboundp(env, Qcreate)) {
@@ -278,7 +278,6 @@ handle_create(emacs_env *env, const char *path)
 
     /* Handle proper response */
     int res_code = env->extract_integer(env, Ires_code);
-    fprintf(stderr, "CREATE result = %d\n", res_code);
     elfuse_call.results.create.code = res_code >= 0 ? CREATE_DONE : CREATE_FAIL;
 
     return RESPONSE_SUCCESS;
@@ -287,7 +286,7 @@ handle_create(emacs_env *env, const char *path)
 static int
 handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
 {
-    fprintf(stderr, "Handling RENAME (oldpath=%s, newpath=%s).\n", oldpath, newpath);
+    fprintf(stderr, "RENAME handle (oldpath=%s, newpath=%s).\n", oldpath, newpath);
 
     emacs_value Qrename = env->intern(env, "elfuse--rename-op");
     if (!fboundp(env, Qrename)) {
@@ -313,7 +312,6 @@ handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
 
     /* Handle proper response */
     int res_code = env->extract_integer(env, Ires_code);
-    fprintf(stderr, "RENAME result = %d\n", res_code);
     elfuse_call.results.rename.code = res_code >= 0 ? RENAME_DONE : RENAME_UNKNOWN;
 
     return RESPONSE_SUCCESS;
@@ -322,7 +320,7 @@ handle_rename(emacs_env *env, const char *oldpath, const char *newpath)
 static int
 handle_readdir(emacs_env *env, const char *path)
 {
-    fprintf(stderr, "Handling READDIR (path=%s).\n", path);
+    fprintf(stderr, "READDIR handle (path=%s).\n", path);
 
     emacs_value Qreaddir = env->intern(env, "elfuse--readdir-op");
     if (!fboundp(env, Qreaddir)) {
@@ -365,7 +363,7 @@ handle_readdir(emacs_env *env, const char *path)
 static int
 handle_getattr(emacs_env *env, const char *path)
 {
-    fprintf(stderr, "Handling GETATTR (path=%s).\n", path);
+    fprintf(stderr, "GETATTR handle (path=%s).\n", path);
 
     emacs_value Qgetattr = env->intern(env, "elfuse--getattr-op");
     if (!fboundp(env, Qgetattr)) {
@@ -407,7 +405,7 @@ handle_getattr(emacs_env *env, const char *path)
 static int
 handle_open(emacs_env *env, const char *path)
 {
-    fprintf(stderr, "Handling OPEN (path=%s).\n", path);
+    fprintf(stderr, "OPEN handle (path=%s).\n", path);
 
     emacs_value Qopen = env->intern(env, "elfuse--open-op");
     if (!fboundp(env, Qopen)) {
@@ -443,7 +441,7 @@ handle_open(emacs_env *env, const char *path)
 static int
 handle_release(emacs_env *env, const char *path)
 {
-    fprintf(stderr, "Handling RELEASE (path=%s).\n", path);
+    fprintf(stderr, "RELEASE handle (path=%s).\n", path);
 
     emacs_value Qrelease = env->intern(env, "elfuse--release-op");
     if (!fboundp(env, Qrelease)) {
@@ -479,7 +477,7 @@ handle_release(emacs_env *env, const char *path)
 static int
 handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
 {
-    fprintf(stderr, "Handling READ (path=%s).\n", path);
+    fprintf(stderr, "READ handle (path=%s).\n", path);
 
     emacs_value Qread = env->intern(env, "elfuse--read-op");
     if (!fboundp(env, Qread)) {
@@ -506,18 +504,15 @@ handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
 
     /* Handle proper response */
     if (env->eq(env, Sdata, nil)) {
-        fprintf(stderr, "Handling READ: nil\n");
         elfuse_call.results.read.bytes_read = -1;
     } else {
         ptrdiff_t buffer_length;
         env->copy_string_contents(env, Sdata, NULL, &buffer_length);
         elfuse_call.results.read.data = malloc(buffer_length);
         if (!env->copy_string_contents(env, Sdata, elfuse_call.results.read.data, &buffer_length)) {
-            fprintf(stderr, "Failed READ: %s\n", path);
             elfuse_call.results.read.bytes_read = -1;
         } else {
             elfuse_call.results.read.bytes_read = buffer_length;
-            fprintf(stderr, "Handling READ: %s(len=%ld)\n", elfuse_call.results.read.data, buffer_length);
         }
     }
 
@@ -527,7 +522,7 @@ handle_read(emacs_env *env, const char *path, size_t offset, size_t size)
 static int
 handle_write(emacs_env *env, const char *path, const char *buf, size_t size, size_t offset)
 {
-    fprintf(stderr, "Handling WRITE (path=%s).\n", path);
+    fprintf(stderr, "WRITE handle (path=%s).\n", path);
 
     emacs_value Qwrite = env->intern(env, "elfuse--write-op");
     if (!fboundp(env, Qwrite)) {
@@ -566,7 +561,7 @@ handle_write(emacs_env *env, const char *path, const char *buf, size_t size, siz
 static int
 handle_truncate(emacs_env *env, const char *path, size_t size)
 {
-    fprintf(stderr, "Handling TRUNCATE (path=%s).\n", path);
+    fprintf(stderr, "TRUNCATE handle (path=%s).\n", path);
 
     emacs_value Qtruncate = env->intern(env, "elfuse--truncate-op");
     if (!fboundp(env, Qtruncate)) {
@@ -604,7 +599,7 @@ handle_truncate(emacs_env *env, const char *path, size_t size)
 static int
 handle_unlink(emacs_env *env, const char *path)
 {
-    fprintf(stderr, "Handling UNLINK (path=%s).\n", path);
+    fprintf(stderr, "UNLINK handle (path=%s).\n", path);
 
     emacs_value Qunlink = env->intern(env, "elfuse--unlink-op");
     if (!fboundp(env, Qunlink)) {
