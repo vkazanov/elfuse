@@ -20,6 +20,10 @@ LDFLAGS = `pkg-config fuse --libs` -pthread -Wl,--no-undefined
 DEPS = elfuse-fuse.h
 OBJ = elfuse-module.o elfuse-fuse.o
 
+EXAMPLESDIR = examples/
+EXAMPLES = write-buffer.el hello.el hello-2.el list-buffers.el
+
+
 all: elfuse-module.so
 
 elfuse-module.so: $(OBJ)
@@ -32,7 +36,7 @@ clean:
 	rm $(OBJ)
 	rm elfuse-module.so
 
-test: elfuse-module.so
-	emacs -Q -L $(PWD) --load "elfuse.el" --load "examples/write-buffer.el"
+$(EXAMPLES): elfuse-module.so
+	emacs -Q -L $(PWD) --load "elfuse.el" --load "$(EXAMPLESDIR)/$@"
 
-.PHONY: clean test
+.PHONY: clean $(EXAMPLES)
