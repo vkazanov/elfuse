@@ -78,6 +78,20 @@ fboundp (emacs_env *env, emacs_value Sfun) {
     return env->is_not_nil(env, env->funcall (env, Qfboundp, 1, args));
 }
 
+static void
+extract_symbol_name(emacs_env *env, emacs_value Qsymbol, char* buffer, ptrdiff_t *size)
+{
+    emacs_value Qsymbol_name = env->intern(env, "symbol-name");
+    emacs_value args[] = {
+        Qsymbol
+    };
+    emacs_value Sname = env->funcall(env, Qsymbol_name, 1, args);
+    env->copy_string_contents(env, Sname, NULL, size);
+    if (buffer != NULL) {
+        env->copy_string_contents(env, Sname, buffer, size);
+    }
+}
+
 static emacs_value
 Felfuse_mount (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 {
@@ -639,11 +653,15 @@ non_local_op_exit(emacs_env *env, enum emacs_funcall_exit exit_code, emacs_value
     int res = RESPONSE_UNKNOWN_ERROR;
     if (exit_code == emacs_funcall_exit_signal) {
         if (env->eq(env, exit_symbol, elfuse_op_error)) {
-            fprintf(stderr, "An Elfuse signal caught\n");
             elfuse_call.response_err_code = env->extract_integer(env, exit_data);
             res = RESPONSE_SIGNAL_ERROR;
+            fprintf(stderr, "An Elfuse signal caught (code=%d)\n", elfuse_call.response_err_code);
         } else {
-            fprintf(stderr, "Unknown signal caught\n");
+            ptrdiff_t size;
+            extract_symbol_name(env, exit_symbol, NULL, &size);
+            char name[size];
+            extract_symbol_name(env, exit_symbol, name, &size);
+            fprintf(stderr, "Unknown error caught (name=%s)\n", name);
         }
 
     } else {
