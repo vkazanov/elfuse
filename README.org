@@ -1,4 +1,12 @@
 * Elfuse
 
-Elfuse is a little experiment in implementing a dynamic Emacs module. The plan is to expose libfuse
+Elfuse is a little experiment in implementing a dynamic Emacs module. It exposes some of the libfuse
 possibilities to Emacs Lisp code.
+
+* TODO Installation
+
+* TODO Usage and Examples
+
+* TODO Callbacks implemented
+
+* TODO Architecture
