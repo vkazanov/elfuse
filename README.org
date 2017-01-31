@@ -1,12 +1,70 @@
 * Elfuse
 
-Elfuse is a little experiment in implementing a dynamic Emacs module. It exposes some of the libfuse
-possibilities to Emacs Lisp code.
+  Elfuse is a little experiment in implementing a dynamic Emacs module. The idea is to expose *some*
+  of the libfuse possibilities to Emacs Lisp code.
 
-* TODO Installation
+* Compile
 
-* TODO Usage and Examples
+  Because Elfuse is a dynamic module, Emacs compiled with dynamic module support is required.
+  Currently (Emacs 25.1) this requires supplying a special flag at configure time (=--with-modules=).
 
-* TODO Callbacks implemented
+  Additionally, Elfuse was developed and tested on Linux only (Ubuntu 16.04) using libfuse 2.9.4, no
+  guaranties on other platforms or libfuse versions.
 
-* TODO Architecture
+  Compilation should be trivial on Linux with a recent GCC:
+
+#+BEGIN_SRC
+  > cd elfuse/directory/
+  > make
+#+END_SRC
+
+* Running Examples
+
+  To run one of the Elfuse examples in the =examples= directory using a config-less separated Emacs
+  instance do something like the following:
+
+#+BEGIN_SRC
+  > cd elfuse/directory/
+  > mkdir mount
+  > make hello.el
+  > # an emacs window will open
+  > # do M-x elfuse-start "mount/" to mount an Elfuse instance to the mount/ path
+  > ls mount/ # a few fake files should appear here
+  > # do M-x elfuse-stop to unmount Elfuse
+#+END_SRC
+
+  This will start Emacs with Elfuse loaded and load an example Elfuse project. In fact, this is *the*
+  recommended way to run Elfuse instances (i.e., =emacs -Q --load elfuse.el=).
+
+  Notice that =elfuse-start= / =elfuse-stop= functions are main user-visible entry points.
+
+  Examples included:
+
+  - =hello.el= - a static list of files with dummy content
+
+  - =hello-2.el= - a dynamic list of files, i.e. it's possible to create a file in the mount path
+
+  - =list-buffers.el= - expose a list of emacs buffers as a list of files. Only buffers having names
+    compatible with POSIX portable filename definition will be listed. Buffer content will also be
+    mirrored. Is is possible to create an Emacs buffer using =touch=.
+
+  - =write-buffer.el= - edit an emacs buffer (=*Elfuse buffer*=) from the terminal.
+
+* Additional Notes
+
+  Elfuse currently doesn't have much documentation apart from the source code and =examples/*.el=. To
+  play with the library the user will have to consult the examples.
+
+  Also, it is strictly *not* recommended to try to list the mounted Elfuse directory using the same
+  Emacs instance that runs Elfuse. This will definitely block Emacs.
+
+  Elfuse runs a libfuse loop using a dedicated (Pthread) thread. When syscalls arrive the thread
+  will block until the main Emacs thread finds time to respond to the request. Checks happen every
+  0.01s *if* Emacs is not busy.
+
+  Elfuse currently does not support mounting multiple FUSE paths. Actually, it uses a single set of predefined
+  callback names (i.e. =elfuse--readir-op=).
+
+  In case things go wrong =fusermount -u path/to/a/mount= should help.
+
+  In case things go HORRIBLY wrong =umount -f path/to/a/mount/= do the trick.
