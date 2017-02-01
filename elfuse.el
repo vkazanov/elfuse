@@ -34,9 +34,6 @@
 (defvar elfuse-time-between-checks 0.01
   "Time interval in seconds between Elfuse request checks.")
 
-(defvar elfuse--check-timer nil
-  "Timer calling the callback-responding function.")
-
 (defconst elfuse--supported-ops-alist '((create . 1)
                                         (rename . 2)
                                         (readdir . 1)
@@ -54,7 +51,6 @@
   (interactive "DElfuse mount path: ")
   (if (elfuse--dir-mountable-p mountpath)
       (let ((abspath (file-truename mountpath)))
-	(elfuse--start-loop)
 	(elfuse--mount abspath)
         (add-hook 'kill-emacs-hook 'elfuse--stop))
     (message "Elfuse: %s does not exist or is not empty." mountpath)))
@@ -90,14 +86,10 @@ the operation."
                 ,arglist
               ,@body))))
 
-(defun elfuse--start-loop ()
-  (setq elfuse--check-timer
-        (run-at-time nil elfuse-time-between-checks 'elfuse--on-timer)))
-
-(defun elfuse--on-timer ()
-  (unless (elfuse--check-ops)
-    (cancel-timer timer)
-    (setq elfuse--check-timer nil)))
+(define-key special-event-map (kbd "<sigusr1>")
+  (lambda ()
+    (interactive)
+    (elfuse--check-ops)))
 
 (defun elfuse--dir-mountable-p (path)
   (and (file-exists-p path)

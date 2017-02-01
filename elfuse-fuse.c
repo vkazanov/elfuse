@@ -26,14 +26,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include "elfuse-fuse.h"
-
-pthread_mutex_t elfuse_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t elfuse_cond_var = PTHREAD_COND_INITIALIZER;
 
 struct elfuse_call_state elfuse_call = {
     .request_state = WAITING_NONE,
@@ -47,8 +45,6 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     (void) fi;
     int res = 0;
 
-    pthread_mutex_lock(&elfuse_mutex);
-
     /* Function to call */
     elfuse_call.request_state = WAITING_CREATE;
     elfuse_call.response_state = RESPONSE_NOTREADY;
@@ -58,7 +54,8 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
     /* Wait for the funcall results */
     fprintf(stderr, "CREATE request (path=%s).\n", path);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -80,7 +77,6 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -89,8 +85,6 @@ static int
 elfuse_rename(const char *oldpath, const char *newpath)
 {
     int res = 0;
-
-    pthread_mutex_lock(&elfuse_mutex);
 
     /* Function to call */
     elfuse_call.request_state = WAITING_RENAME;
@@ -102,7 +96,8 @@ elfuse_rename(const char *oldpath, const char *newpath)
 
     /* Wait for the funcall results */
     fprintf(stderr, "RENAME request (oldpath=%s, newpath=%s).\n", oldpath, newpath);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.rename.code == RENAME_DONE) {
@@ -124,7 +119,6 @@ elfuse_rename(const char *oldpath, const char *newpath)
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -133,8 +127,6 @@ static int
 elfuse_getattr(const char *path, struct stat *stbuf)
 {
     int res = 0;
-
-    pthread_mutex_lock(&elfuse_mutex);
 
     /* Function to call */
     elfuse_call.request_state = WAITING_GETATTR;
@@ -145,7 +137,8 @@ elfuse_getattr(const char *path, struct stat *stbuf)
 
     /* Wait for the funcall results */
     fprintf(stderr, "GETATTR request (path=%s)\n", path);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -177,7 +170,6 @@ elfuse_getattr(const char *path, struct stat *stbuf)
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -191,8 +183,6 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     int res = 0;
 
-    pthread_mutex_lock(&elfuse_mutex);
-
     /* Function to call */
     elfuse_call.request_state = WAITING_READDIR;
     elfuse_call.response_state = RESPONSE_NOTREADY;
@@ -202,7 +192,8 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     /* Wait for results */
     fprintf(stderr, "READDIR request (path=%s)\n", path);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -226,7 +217,6 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -240,8 +230,6 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
     if ((fi->flags & 3) != O_RDONLY)
         return -EACCES;
 
-    pthread_mutex_lock(&elfuse_mutex);
-
     /* Function to call */
     elfuse_call.request_state = WAITING_OPEN;
     elfuse_call.response_state = RESPONSE_NOTREADY;
@@ -251,7 +239,8 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
 
     /* Wait for results */
     fprintf(stderr, "OPEN request (path=%s)\n", path);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "OPEN success (code=%d)\n", elfuse_call.results.open.code);
@@ -273,7 +262,6 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -287,8 +275,6 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
     if ((fi->flags & 3) != O_RDONLY)
         return -EACCES;
 
-    pthread_mutex_lock(&elfuse_mutex);
-
     /* Function to call */
     elfuse_call.request_state = WAITING_RELEASE;
     elfuse_call.response_state = RESPONSE_NOTREADY;
@@ -298,7 +284,8 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
 
     /* Wait for results */
     fprintf(stderr, "RELEASE request (path=%s)\n", path);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "RELEASE success (code=%d)\n", elfuse_call.results.release.code);
@@ -320,7 +307,6 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -333,8 +319,6 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 
     int res = 0;
 
-    pthread_mutex_lock(&elfuse_mutex);
-
     /* Function to call */
     elfuse_call.request_state = WAITING_READ;
     elfuse_call.response_state = RESPONSE_NOTREADY;
@@ -346,7 +330,8 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 
     /* Wait for the funcall results */
     fprintf(stderr, "READ request (path=%s, size=%ld, offset=%ld).\n", path, size, offset);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.read.bytes_read >= 0) {
@@ -370,7 +355,6 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -382,8 +366,6 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     (void) fi;
 
     int res = 0;
-
-    pthread_mutex_lock(&elfuse_mutex);
 
     /* Function to call */
     elfuse_call.request_state = WAITING_WRITE;
@@ -397,7 +379,8 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 
     /* Wait for the funcall results */
     fprintf(stderr, "WRITE request (path=%s, size=%ld, offset=%ld).\n", path, size, offset);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "WRITE success (size=%d)\n", elfuse_call.results.write.size);
@@ -418,7 +401,6 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -427,8 +409,6 @@ static int
 elfuse_truncate(const char *path, off_t size)
 {
     size_t res = 0;
-
-    pthread_mutex_lock(&elfuse_mutex);
 
     /* Function to call */
     elfuse_call.request_state = WAITING_TRUNCATE;
@@ -440,7 +420,8 @@ elfuse_truncate(const char *path, off_t size)
 
     /* Wait for the funcall results */
     fprintf(stderr, "TRUNCATE request (path=%s, size=%ld).\n", path, size);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "TRUNCATE success (code=%d)\n", elfuse_call.results.truncate.code);
@@ -461,7 +442,6 @@ elfuse_truncate(const char *path, off_t size)
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
 
     return res;
 }
@@ -470,8 +450,6 @@ static int
 elfuse_unlink(const char *path)
 {
     size_t res = 0;
-
-    pthread_mutex_lock(&elfuse_mutex);
 
     /* Function to call */
     elfuse_call.request_state = WAITING_UNLINK;
@@ -482,7 +460,8 @@ elfuse_unlink(const char *path)
 
     /* Wait for the funcall results */
     fprintf(stderr, "UNLINK request (path=%s).\n", path);
-    pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+    raise(SIGUSR1);
+    sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "UNLINK success (code=%d)\n", elfuse_call.results.unlink.code);
@@ -503,7 +482,6 @@ elfuse_unlink(const char *path)
     }
 
     elfuse_call.request_state = WAITING_NONE;
-    pthread_mutex_unlock(&elfuse_mutex);
     return res;
 }
 
@@ -549,7 +527,6 @@ elfuse_fuse_loop(void* mountpath)
     int err = -1;
 
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
-    pthread_mutex_lock(&elfuse_mutex);
 
     /* Parse arguments */
     if (fuse_parse_cmdline(&args, &mountpoint, NULL, NULL) == -1) {
@@ -558,8 +535,7 @@ elfuse_fuse_loop(void* mountpath)
         free(mountpoint);
 
         elfuse_init_code = INIT_ERR_ARGS;
-        pthread_cond_signal(&elfuse_cond_var);
-        pthread_mutex_unlock(&elfuse_mutex);
+        sem_post(&init_sem);
 
         pthread_exit(NULL);
     }
@@ -572,8 +548,7 @@ elfuse_fuse_loop(void* mountpath)
         fprintf(stderr, "Elfuse: failed mounting\n");
 
         elfuse_init_code = INIT_ERR_MOUNT;
-        pthread_cond_signal(&elfuse_cond_var);
-        pthread_mutex_unlock(&elfuse_mutex);
+        sem_post(&init_sem);
 
         pthread_exit(NULL);
     }
@@ -585,8 +560,7 @@ elfuse_fuse_loop(void* mountpath)
         fprintf(stderr, "Elfuse: failed creating FUSE\n");
 
         elfuse_init_code = INIT_ERR_CREATE;
-        pthread_cond_signal(&elfuse_cond_var);
-        pthread_mutex_unlock(&elfuse_mutex);
+        sem_post(&init_sem);
 
         pthread_exit(NULL);
     }
@@ -597,8 +571,7 @@ elfuse_fuse_loop(void* mountpath)
         fprintf(stderr, "Elfuse: failed to allocate the read buffer\n");
 
         elfuse_init_code = INIT_ERR_ALLOC;
-        pthread_cond_signal(&elfuse_cond_var);
-        pthread_mutex_unlock(&elfuse_mutex);
+        sem_post(&init_sem);
 
         pthread_exit(NULL);
     }
@@ -606,8 +579,7 @@ elfuse_fuse_loop(void* mountpath)
 
     /* Let Emacs know that init was a success */
     elfuse_init_code = INIT_DONE;
-    pthread_cond_signal(&elfuse_cond_var);
-    pthread_mutex_unlock(&elfuse_mutex);
+    sem_post(&init_sem);
 
     /* Go-go-go! */
     fprintf(stderr, "Elfuse: starting main loop\n");

@@ -27,6 +27,9 @@
 
 int plugin_is_GPL_compatible;
 
+sem_t request_sem;
+sem_t init_sem;
+
 static bool elfuse_is_started = false;
 static pthread_t fuse_thread;
 
@@ -105,18 +108,19 @@ Felfuse_mount (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
         char *path = malloc(buffer_length);
         env->copy_string_contents(env, Qpath, path, &buffer_length);
 
-        pthread_mutex_lock(&elfuse_mutex);
-
+        sem_init(&request_sem, 0, 0);
+        sem_init(&init_sem, 0, 0);
         if (pthread_create(&fuse_thread, NULL, elfuse_fuse_loop, path) != 0) {
             char *msg = "Elfuse: failed to launch a FUSE thread";
             message(env, msg);
             fprintf(stderr, "%s\n", msg);
 
-            pthread_mutex_unlock(&elfuse_mutex);
             return nil;
         }
 
-        pthread_cond_wait(&elfuse_cond_var, &elfuse_mutex);
+        /* Wait for initialization */
+        sem_wait(&init_sem);
+        sem_destroy(&init_sem);
 
         emacs_value res = nil;
         char *msg;
@@ -157,7 +161,6 @@ Felfuse_mount (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
             break;
         }
 
-        pthread_mutex_unlock(&elfuse_mutex);
         return res;
     }
     return nil;
@@ -181,14 +184,13 @@ Felfuse_stop (emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
         return nil;
     }
 
-    pthread_cond_signal(&elfuse_cond_var);
-
     if (pthread_join(fuse_thread, NULL) != 0) {
         char* msg = "Elfuse: failed to join the FUSE thread\n";
         fprintf(stderr, "%s", msg);
         message(env, msg);
         return nil;
     }
+    sem_destroy(&request_sem);
 
     return t;
 }
@@ -215,9 +217,6 @@ Felfuse_check_ops(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *dat
         message(env, "Elfuse loop is not running, abort.");
         return nil;
     }
-
-    if (pthread_mutex_trylock(&elfuse_mutex) != 0)
-        return t;
 
     switch (elfuse_call.request_state) {
     case WAITING_CREATE:
@@ -258,8 +257,7 @@ Felfuse_check_ops(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *dat
         break;
     }
 
-    pthread_mutex_unlock(&elfuse_mutex);
-    pthread_cond_signal(&elfuse_cond_var);
+    sem_post(&request_sem);
 
     return t;
 }
