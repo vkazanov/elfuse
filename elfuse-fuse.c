@@ -55,7 +55,7 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     /* Wait for the funcall results */
     fprintf(stderr, "CREATE request (path=%s).\n", path);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -97,7 +97,7 @@ elfuse_rename(const char *oldpath, const char *newpath)
     /* Wait for the funcall results */
     fprintf(stderr, "RENAME request (oldpath=%s, newpath=%s).\n", oldpath, newpath);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.rename.code == RENAME_DONE) {
@@ -138,7 +138,7 @@ elfuse_getattr(const char *path, struct stat *stbuf)
     /* Wait for the funcall results */
     fprintf(stderr, "GETATTR request (path=%s)\n", path);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -193,7 +193,7 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     /* Wait for results */
     fprintf(stderr, "READDIR request (path=%s)\n", path);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     /* Got the results, see if everything's fine */
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -240,7 +240,7 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
     /* Wait for results */
     fprintf(stderr, "OPEN request (path=%s)\n", path);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "OPEN success (code=%d)\n", elfuse_call.results.open.code);
@@ -285,7 +285,7 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
     /* Wait for results */
     fprintf(stderr, "RELEASE request (path=%s)\n", path);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "RELEASE success (code=%d)\n", elfuse_call.results.release.code);
@@ -331,7 +331,7 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
     /* Wait for the funcall results */
     fprintf(stderr, "READ request (path=%s, size=%ld, offset=%ld).\n", path, size, offset);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         if (elfuse_call.results.read.bytes_read >= 0) {
@@ -380,7 +380,7 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     /* Wait for the funcall results */
     fprintf(stderr, "WRITE request (path=%s, size=%ld, offset=%ld).\n", path, size, offset);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "WRITE success (size=%d)\n", elfuse_call.results.write.size);
@@ -421,7 +421,7 @@ elfuse_truncate(const char *path, off_t size)
     /* Wait for the funcall results */
     fprintf(stderr, "TRUNCATE request (path=%s, size=%ld).\n", path, size);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "TRUNCATE success (code=%d)\n", elfuse_call.results.truncate.code);
@@ -461,7 +461,7 @@ elfuse_unlink(const char *path)
     /* Wait for the funcall results */
     fprintf(stderr, "UNLINK request (path=%s).\n", path);
     pthread_kill(emacs_thread, SIGUSR1);
-    sem_wait(&request_sem);
+    while (sem_wait(&request_sem));
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
         fprintf(stderr, "UNLINK success (code=%d)\n", elfuse_call.results.unlink.code);
