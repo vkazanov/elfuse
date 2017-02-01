@@ -21,6 +21,7 @@
 
 extern sem_t request_sem;
 extern sem_t init_sem;
+extern pthread_t emacs_thread;
 
 /* Init codes */
 enum elfuse_init_code_enum {

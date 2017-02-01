@@ -29,6 +29,7 @@ int plugin_is_GPL_compatible;
 
 sem_t request_sem;
 sem_t init_sem;
+pthread_t emacs_thread;
 
 static bool elfuse_is_started = false;
 static pthread_t fuse_thread;
@@ -676,6 +677,7 @@ emacs_module_init (struct emacs_runtime *ert)
     nil = env->intern(env, "nil");
     t = env->intern(env, "t");
     elfuse_op_error = env->intern(env, "elfuse-op-error");
+    emacs_thread = pthread_self();
 
     emacs_value fun = env->make_function (
         env, 1, 1,

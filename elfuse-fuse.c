@@ -54,7 +54,7 @@ elfuse_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
     /* Wait for the funcall results */
     fprintf(stderr, "CREATE request (path=%s).\n", path);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     /* Got the results, see if everything's fine */
@@ -96,7 +96,7 @@ elfuse_rename(const char *oldpath, const char *newpath)
 
     /* Wait for the funcall results */
     fprintf(stderr, "RENAME request (oldpath=%s, newpath=%s).\n", oldpath, newpath);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -137,7 +137,7 @@ elfuse_getattr(const char *path, struct stat *stbuf)
 
     /* Wait for the funcall results */
     fprintf(stderr, "GETATTR request (path=%s)\n", path);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     /* Got the results, see if everything's fine */
@@ -192,7 +192,7 @@ elfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     /* Wait for results */
     fprintf(stderr, "READDIR request (path=%s)\n", path);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     /* Got the results, see if everything's fine */
@@ -239,7 +239,7 @@ elfuse_open(const char *path, struct fuse_file_info *fi)
 
     /* Wait for results */
     fprintf(stderr, "OPEN request (path=%s)\n", path);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -284,7 +284,7 @@ elfuse_release(const char *path, struct fuse_file_info *fi)
 
     /* Wait for results */
     fprintf(stderr, "RELEASE request (path=%s)\n", path);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -330,7 +330,7 @@ elfuse_read(const char *path, char *buf, size_t size, off_t offset,
 
     /* Wait for the funcall results */
     fprintf(stderr, "READ request (path=%s, size=%ld, offset=%ld).\n", path, size, offset);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -379,7 +379,7 @@ elfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 
     /* Wait for the funcall results */
     fprintf(stderr, "WRITE request (path=%s, size=%ld, offset=%ld).\n", path, size, offset);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -420,7 +420,7 @@ elfuse_truncate(const char *path, off_t size)
 
     /* Wait for the funcall results */
     fprintf(stderr, "TRUNCATE request (path=%s, size=%ld).\n", path, size);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
@@ -460,7 +460,7 @@ elfuse_unlink(const char *path)
 
     /* Wait for the funcall results */
     fprintf(stderr, "UNLINK request (path=%s).\n", path);
-    raise(SIGUSR1);
+    pthread_kill(emacs_thread, SIGUSR1);
     sem_wait(&request_sem);
 
     if (elfuse_call.response_state == RESPONSE_SUCCESS) {
