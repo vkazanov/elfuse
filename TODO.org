@@ -1,0 +1,11 @@
+* Possible improvements
+
+** Instead of using Emacs signals for error reporting it might be possible to just return keywords such as :ENOSYS
+
+   ...while still handling non-local exits
+
+** Multiple FUSE threads with a single request queue
+
+** Get rid of all the boilerplate code - there must be a better way of declaring handlers
+
+** Install/drop the signal handler when starting/stoping Elfuse?

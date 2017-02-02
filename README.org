@@ -3,6 +3,8 @@
   Elfuse is a little experiment in implementing a dynamic Emacs module. The idea is to expose *some*
   of the libfuse possibilities to Emacs Lisp code.
 
+  In other words, it should now be possible to implement file systems in Emacs lisp!
+
 * Compile
 
   Because Elfuse is a dynamic module, Emacs compiled with dynamic module support is required.
@@ -59,8 +61,8 @@
   Emacs instance that runs Elfuse. This will definitely block Emacs.
 
   Elfuse runs a libfuse loop using a dedicated (Pthread) thread. When syscalls arrive the thread
-  will block until the main Emacs thread finds time to respond to the request. Checks happen every
-  0.01s *if* Emacs is not busy.
+  signals (sends a SIGUSR1 signal) the main Emacs thread and blocks until the main thread finds time
+  to respond to the request.
 
   Elfuse currently does not support mounting multiple FUSE paths. Actually, it uses a single set of predefined
   callback names (i.e. =elfuse--readir-op=).
