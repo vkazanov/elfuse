@@ -17,9 +17,11 @@
 #define ELFUSE_FUSE_H
 
 #include <pthread.h>
+#include <semaphore.h>
 
-extern pthread_mutex_t elfuse_mutex;
-extern pthread_cond_t elfuse_cond_var;
+extern sem_t request_sem;
+extern sem_t init_sem;
+extern pthread_t emacs_thread;
 
 /* Init codes */
 enum elfuse_init_code_enum {
