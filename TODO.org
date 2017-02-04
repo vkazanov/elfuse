@@ -6,6 +6,82 @@
 
 ** Multiple FUSE threads with a single request queue
 
+   See Skeeto's ideas below.
+
 ** Get rid of all the boilerplate code - there must be a better way of declaring handlers
 
 ** Install/drop the signal handler when starting/stoping Elfuse?
+
+** Skeeto's ideas
+
+I've been thinking more about multiple mountpoints, one thread per
+mount. The communication between Emacs and the FUSE could be made
+cleaner while also adding support for multiple threads.
+
+Each thread allocates its own request struct. This struct has a
+dedicated semaphore and a "next" pointer so that structs from multiple
+threads can be chained together as a linked list. When a requests comes
+in, it fills out the request, grabs the global linked list mutex, hooks
+it into the front of the global list, fires SIGUSR1 if the list was
+empty, releases the mutex, and waits on the request semaphore.
+
+In response to a SIGUSR1, Emacs grabs the linked list mutex, processes
+the first request, posts on the semaphore (the FUSE thread can continue
+while the mutex is still locked), repeats this until the list is empty,
+and unlocks the mutex. Since it processes the entire list at once in a
+big lock, it need not be a "fair" queue and the simple linked list stack
+will suffice.
+
+This means the "RESPONSE_NOTREADY" state can be dropped, as can
+"elfuse_is_started". A request in the linked list is sufficient. Overall
+I think the request linked list less stateful.
+
+As for the interface on the Elisp side, I say drop elfuse-define-op and
+instead have a non-interactive elfuse-mount function. I think an example
+is self-explanatory.
+
+    (elfuse-mount "path/to/mount"
+                  '((:create   . my-package--create)
+                    (:rename   . my-package--rename)
+                    (:getattr  . my-package--getattr)
+                    (:readdir  . my-package--readdir)
+                    (:open     . my-package--open)
+                    (:release  . my-package--release)
+                    (:read     . my-package--read)
+                    (:write    . my-package--write)
+                    (:truncate . my-package--truncate)
+                    (:unlink   . my-package--unlink)))
+
+This would return a "handle" for the mount, probably user pointer, to be
+passed as the sole argument to elfuse-unmount. The nice thing about a
+user pointer is that by attaching a finalizer, the garbage collector
+could automatically unmount the filesystem at some point after the
+handle is lost. Or maybe that's just crazy.
+
+On the C, side each emacs_value cdr in the alist is repackaged into a C
+struct. Each of these funcall-able objects will also need to be marked
+as a GC root so Emacs doesn't garbage collect them. The alist won't be
+traversed on each request, it's just an easy represent it to the API.
+
+It's up to the package using Elfuse to present a nice interactive
+function.
+
+    (defun my-package-mount (path)
+      (interactive "DMount path: ")
+      (elfuse-mount path '(...)))
+
+I spent some time thinking about alternatives to thread cancellation. I
+dislike cancellation since it's such a messy thing, fraught with peril.
+Reading the FUSE source, and knowing that pthread_cancel() is
+(typically?) implemented on Linux via SIGUSR2, it looks like it's
+probably fine for now. But there's no assurance FUSE will always clean
+up properly in the future. I can't think of anything "more correct"
+other than switching to a two-threaded (1 Emacs thread, 1 FUSE thread)
+poll()-based interface, which requires calling all sorts of undocumented
+functions in the low level FUSE interface. Bleh.
+
+I believe your current FUSE event pump will work fine under multiple
+threads. Judging from the FUSE source, fuse_main() would definitely not
+have worked since it stores values in global variables. However, unless
+I'm missing something, I think you could dump the low level FUSE
+interface and call fuse_loop() instead.
