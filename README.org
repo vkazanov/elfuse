@@ -69,4 +69,16 @@
 
   In case things go wrong =fusermount -u path/to/a/mount= should help.
 
-  In case things go HORRIBLY wrong =umount -f path/to/a/mount/= do the trick.
+  In case things go HORRIBLY wrong =umount -f path/to/a/mount/= should do the trick.
+
+* Background
+
+  Some time ago I wrote [[https://github.com/vkazanov/toy-orgfuse][quick Python script]] that allows to mount org-mode files as FUSE filesystems.
+  The obvious problem with the script was that it needed a custom Org-mode file parser, which would
+  always lag behind the mainstream Org-mode and would miss important features. I was wondering if
+  using the native parser was possible.
+
+  As some point [[http://nullprogram.com/][Chris Wellons]] jumped in and mentioned that it might be possible to implement a
+  dynamic Emacs module doing just that: Emacs Lisp bindings to FUSE. Which I did! Later on Chris
+  came up with a [[http://nullprogram.com/blog/2017/02/14/][blog post]] about the way Elfuse works. Elfuse uses a few interesting tricks so if
+  you're interested in details - just follow the link.
